@@ -1,7 +1,7 @@
 # SimpleAR: Pushing the Frontier of Autoregressive Visual Generation
 
 <div style="text-align: center; margin-top: 0px;">
-  <a href="" target="_blank" style="text-decoration: none; color: #007acc;">
+  <a href="https://arxiv.org/abs/2504.11455" target="_blank" style="text-decoration: none; color: #007acc;">
     SimpleAR: Pushing the Frontier of Autoregressive Visual Generation through Pretraining, SFT, and RL
   </a><br><br>
   Junke Wang<sup>1</sup>, Zhi Tian<sup>2</sup>, Xun Wang<sup>2</sup>, Xinyu Zhang<sup>2</sup>, Weilin Huang<sup>2</sup>, Zuxuan Wu<sup>1</sup>, Yu-Gang Jiang<sup>1</sup><br>
