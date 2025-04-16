@@ -19,7 +19,7 @@
 This paper presents SimpleAR, a vanilla autoregressive visual generation model that achieves state-of-the-art text-to-image generation performance. First the first time, we demonstrate that:
 - 🏆 with only 0.5B parameters, an AR model can generate 1024 resolution images with high fidelity, and achieve competitive results on challenging T2I benchmarks, e.g., 0.59 on GenEval and 79.66 on DPG;
 - 🚀 both supervised fine-tuning (SFT) and Group Relative Policy Optimization (GRPO) training could lead to significant improvements on image aesthectics and prompt alignment;
-- ⚡️ when deployed with vLLM, the throughput of AR model allows for generating 1024 resolution images in 14 seconds, making high-resolution generation practical for real-world applications. 
+- ⚡️ when deployed with vLLM, the throughput of our model allows for generating 1024 resolution images in 14 seconds, making high-resolution generation practical for real-world applications. 
 
 We open-sourced all the training and inference code, hoping to show the potential of autoregressive visual generation and encourage more participation in this research field.
 
@@ -54,7 +54,7 @@ We provide both SFT and RL checkpoints:
 | SimpleAR-1.5B-sft | 0.61 | 80.11 | [1.5B-sft](https://huggingface.co/Daniel0724/SimpleAR/tree/main/simplear_1.5B_sft) |
 | SimpleAR-1.5B-rl | 0.63 | 81.31 | [1.5B-grpo](https://huggingface.co/Daniel0724/SimpleAR/tree/main/simplear_1.5B_rl) |
 
-Besides, we use [Cosmos](https://huggingface.co/nvidia/Cosmos-1.0-Tokenizer-DV8x16x16) as our visual tokenizer, you can download and put it under *./checkpoints/*:
+We use [Cosmos](https://huggingface.co/nvidia/Cosmos-1.0-Tokenizer-DV8x16x16) as our visual tokenizer, you can download and put it under *./checkpoints/*:
 
 ```bash
 cd checkpoints
@@ -172,7 +172,7 @@ Please follow the instructions in their repo to calculate the metrics.
 
 ### Inference with vLLM and SJD
 
-vLLM could significantly improve the inference efficiency, you can first install ite from [this repo](https://github.com/wdrink/vllm):
+vLLM could significantly improve the inference efficiency, you can first install it from [this repo](https://github.com/wdrink/vllm):
 
 ```
 git clone https://github.com/wdrink/vllm
