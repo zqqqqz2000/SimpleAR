@@ -20,7 +20,7 @@ This paper presents SimpleAR, a vanilla autoregressive visual generation model t
 - 🚀 both supervised fine-tuning (SFT) and Group Relative Policy Optimization (GRPO) training could lead to significant improvements on image aesthectics and prompt alignment;
 - ⚡️ when deployed with vLLM, the throughput of AR model allows for generating 1024 resolution images in 14 seconds, making high-resolution generation practical for real-world applications. 
 
-By sharing these findings and open-sourcing the code, we hope to reveal the potential of autoregressive visual generation and encourage more participation in this research field.
+We open-sourced all the training and inference code, hoping to show the potential of autoregressive visual generation and encourage more participation in this research field.
 
 ## Models & Scripts
 
@@ -214,6 +214,7 @@ If you find this repository helpful, please consider citing:
 @article{wang2025simplear,
     title={SimpleAR: Pushing the Frontier of Autoregressive Visual Generation through Pretraining, SFT, and RL},
     author={Wang, Junke and Tian, Zhi and Wang, Xun and Zhang, Xinyu and Huang, Weilin and Wu, Zuxuan and Jiang, Yu-Gang},
+    journal={arXiv preprint arXiv:2504.11455},
     year={2025}
 }
 ```
