@@ -4,7 +4,8 @@
   <a href="https://arxiv.org/abs/2504.11455" target="_blank" style="text-decoration: none; color: #007acc;">
     SimpleAR: Pushing the Frontier of Autoregressive Visual Generation through Pretraining, SFT, and RL
   </a><br><br>
-  Junke Wang<sup>1</sup>, Zhi Tian<sup>2</sup>, Xun Wang<sup>2</sup>, Xinyu Zhang<sup>2</sup>, Weilin Huang<sup>2</sup>, Zuxuan Wu<sup>1</sup>, Yu-Gang Jiang<sup>1</sup><br>
+  <a href="https://wdrink.github.io/">Junke Wang</a><sup>1</sup>, 
+<a href="https://zhitian.xyz/">Zhi Tian</a><sup>2</sup>, Xun Wang<sup>2</sup>, Xinyu Zhang<sup>2</sup>, Weilin Huang<sup>2</sup>, <a href="https://zxwu.azurewebsites.net/">Zuxuan Wu</a><sup>1</sup>, Yu-Gang Jiang<sup>1</sup><br>
   <sup>1</sup>Fudan University, <sup>2</sup>ByteDance Seed
   <br>
 </div>
@@ -15,8 +16,8 @@
 
 ## Introduction
 
-This paper presents SimpleAR, a vanilla autoregressive visual generation model that achieves state-of-the-art performance. First the first time, we demonstrate that:
-- 🏆 with only 0.5B parameters, an AR model can generate 1024 resolution images with high fidelity, and achieve competitive results on challenging text-to-image benchmarks, e.g., 0.59 on GenEval and 79.66 on DPG;
+This paper presents SimpleAR, a vanilla autoregressive visual generation model that achieves state-of-the-art text-to-image generation performance. First the first time, we demonstrate that:
+- 🏆 with only 0.5B parameters, an AR model can generate 1024 resolution images with high fidelity, and achieve competitive results on challenging T2I benchmarks, e.g., 0.59 on GenEval and 79.66 on DPG;
 - 🚀 both supervised fine-tuning (SFT) and Group Relative Policy Optimization (GRPO) training could lead to significant improvements on image aesthectics and prompt alignment;
 - ⚡️ when deployed with vLLM, the throughput of AR model allows for generating 1024 resolution images in 14 seconds, making high-resolution generation practical for real-world applications. 
 
@@ -44,7 +45,7 @@ cd ..
 
 ## Model Zoo
 
-We provide both SFT checkpoints and RL checkpoints:
+We provide both SFT and RL checkpoints:
 
 | name | GenEval | DPG | HF weights 🤗 |
 |:---|:---:|:---:|:---:|
@@ -151,7 +152,7 @@ accelerate launch --main_process_port 1234 --config_file llava/configs/accelerat
     --data_path /path_to_annotation_file
 ```
 
-During training, we observed quite promising reward curves😄:
+During training, we observed quite promising reward curves 😄:
 <br>
 
 <a style="display: block; text-align: left; margin-top: 10px;"><img src="assets/reward.png" width="60%"></a>
@@ -202,8 +203,8 @@ python3 generate.py
 ## Visualizations
 
 <p align="left">
-  <img src="./assets/visualization.png" alt="Architecture Diagram" width="80%" />
-  <img src="./assets/geneval.png" alt="Architecture Diagram" width="80%" />
+  <img src="./assets/visualization.png" alt="" width="80%" />
+  <img src="./assets/geneval.png" alt="" width="80%" />
   <br>
   <em>1024 x 1024 generation results by SimpleAR.</em>
 </p>
