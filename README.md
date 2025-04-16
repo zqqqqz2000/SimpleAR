@@ -152,7 +152,7 @@ accelerate launch --main_process_port 1234 --config_file llava/configs/accelerat
     --data_path /path_to_annotation_file
 ```
 
-During training, we observed quite promising reward curves 😄:
+We spent lots of time to tune the hyper-parameters and improve the training efficiency. After this, we observed quite promising reward curves 😄:
 <br>
 
 <a style="display: block; text-align: left; margin-top: 10px;"><img src="assets/reward.png" width="60%"></a>
@@ -219,3 +219,7 @@ If you find this repository helpful, please consider citing:
     year={2025}
 }
 ```
+
+## Acknowledgement
+
+We thank [Peize Sun](https://peizesun.github.io/) for the valuable discussions.
