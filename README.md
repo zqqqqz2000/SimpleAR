@@ -31,7 +31,7 @@ We open-sourced all the training and inference code, hoping to show the potentia
 
 ## Updates
 
-- [2025/04/20] We update the installation instructions and [model zoo](https://huggingface.co/collections/Daniel0724/simplear-6805053f5b4b9961ac025136): thanks [syjmelody](https://github.com/syjmelody), [wusize](https://github.com/wusize), and [micky-li-hd](https://github.com/micky-li-hd) for raising issues.
+- [2025/04/20] We update the [installation instructions](./docs/TRAIN.md) and [model zoo](https://huggingface.co/collections/Daniel0724/simplear-6805053f5b4b9961ac025136): thanks [syjmelody](https://github.com/syjmelody), [wusize](https://github.com/wusize), and [micky-li-hd](https://github.com/micky-li-hd) for raising issues.
 - [2025/04/21] Stronger models with better generation quality, and more functionality, e.g., editing and controllable generation, will be released in this repo, please stay tuned!
 
 ## Installation
@@ -46,7 +46,7 @@ source env/bin/activate
 pip install -e ".[train]"
 ```
 
-For advanced usage, (GRPO training, inference using vLLM), please refer to [TRAIN.md](./docs/TRAIN.md) and [EVAL.md](./docs/EVAL.md) for more details.
+For advanced usage (GRPO training, inference using vLLM), please refer to [TRAIN.md](./docs/TRAIN.md) and [EVAL.md](./docs/EVAL.md) for more details.
 
 ## Models & Scripts
 
@@ -73,12 +73,12 @@ git clone https://huggingface.co/nvidia/Cosmos-1.0-Tokenizer-DV8x16x16
 
 ## Play with Our Model (Quick Start)
 
-You can directly load SimpleAR with *from_pretrained* now 🤗! Please refer to [PLAY.md](./docs/PLAY.md) to see how to generate images with our model with minimal efforts.
+You can directly load SimpleAR with *from_pretrained* now 🤗! Please refer to [PLAY.md](./docs/PLAY.md) to see how to generate images using our model with minimal efforts.
 
 
 ## Training
 
-You can find how to prepare data, how to perform pretraining, SFT, and GRPO training [here](./docs/TRAIN.md).
+Please find the instructions on data preparation and training [here](./docs/TRAIN.md).
 
 ## Evaluation and Inference
 
