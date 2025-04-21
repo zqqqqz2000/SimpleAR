@@ -154,9 +154,9 @@ We set *--model_max_length* to # of visual tokens + 512, i.e., 1536 for 512 pret
 We follow [Open-R1](https://github.com/huggingface/open-r1) to implement GRPO training with [trl](https://github.com/huggingface/trl), please refer to *./scripts/env_rl.sh* to set up the environment. Then you can run:
 
 ```bash
-accelerate launch --main_process_port 1234 --config_file llava/configs/accelerate_configs/zero3.yaml \
-    --num_processes=7 llava/train/llava_trainer_grpo.py \
-    --config llava/configs/config_grpo.yaml \
+accelerate launch --main_process_port 1234 --config_file simpar/configs/accelerate_configs/zero3.yaml \
+    --num_processes=7 simpar/train/llava_trainer_grpo.py \
+    --config simpar/configs/config_grpo.yaml \
     --data_path /path_to_annotation_file
 ```
 
