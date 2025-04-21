@@ -7,7 +7,12 @@ from tqdm import tqdm
 
 import torch
 from torchvision.utils import save_image
-from vllm import SamplingParams
+
+try:
+    from vllm import SamplingParams
+    IS_VLLM_AVAILABLE = True
+except:
+    IS_VLLM_AVAILABLE = False
 
 from simpar.model.tokenizer.cosmos_tokenizer.networks import TokenizerConfigs
 from simpar.model.tokenizer.cosmos_tokenizer.video_lib import CausalVideoTokenizer as CosmosTokenizer
@@ -30,17 +35,29 @@ def generate(model, vq_model, tokenizer, prompts, save_dir, args):
 
         if not args.vllm_serving: # inference with hf
             t1 = time.time()
-            output_ids = model.generate_visual(
-                input_ids,
-                negative_prompt_ids=uncond_input_ids,
-                cfg_scale=args.cfg_scale,
-                do_sample=True,
-                temperature=args.temperature,
-                top_p=args.top_p,
-                top_k=args.top_k,
-                max_new_tokens=max_new_tokens,
-                use_cache=True
-            )
+            if args.sjd_sampling:
+                output_ids = model.generate_visual_sjd(
+                    input_ids,
+                    negative_prompt_ids=uncond_input_ids,
+                    cfg_scale=args.cfg_scale,
+                    temperature=args.temperature,
+                    max_new_tokens=max_new_tokens,
+                    use_cache=True,
+                    tokenizer=tokenizer,
+                )
+            else:
+                output_ids = model.generate_visual(
+                    input_ids,
+                    negative_prompt_ids=uncond_input_ids,
+                    cfg_scale=args.cfg_scale,
+                    do_sample=True,
+                    temperature=args.temperature,
+                    top_p=args.top_p,
+                    top_k=args.top_k,
+                    max_new_tokens=max_new_tokens,
+                    use_cache=True
+                )
+            
             sampling_time = time.time() - t1
             llm_time += sampling_time
             index_sample = output_ids[:, input_ids.shape[1]: input_ids.shape[1] + max_new_tokens].clone()
@@ -122,8 +139,10 @@ def main(args):
     if not args.vllm_serving:
         tokenizer, model, _, _  = load_pretrained_model(model_path, attn_implementation="sdpa", device_map=args.device)
     else:
+        assert IS_VLLM_AVAILABLE, "VLLM is not installed."
         tokenizer, model = vllm_t2i(model_path=model_path)
 
+    os.makedirs(args.save_dir, exist_ok=True)
     generate(model, vq_model, tokenizer, args.prompts, args.save_dir, args)
     
 
@@ -133,6 +152,7 @@ if __name__ == "__main__":
     parser.add_argument("--vq-model-ckpt", type=str, default="./checkpoints/Cosmos-1.0-Tokenizer-DV8x16x16")
     parser.add_argument("--prompts", nargs="+", default=["Inside a warm room with a large window showcasing a picturesque winter landscape, three gleaming ruby red necklaces are elegantly laid out on the plush surface of a deep purple velvet jewelry box. The gentle glow from the overhead light accentuates the rich color and intricate design of the necklaces. Just beyond the glass pane, snowflakes can be seen gently falling to coat the ground outside in a blanket of white."])
     parser.add_argument("--save_dir", type=str, default="./visualize")
+    parser.add_argument("--sjd_sampling", action="store_true", default=False)
     parser.add_argument("--vllm_serving", action="store_true")
     parser.add_argument("--image-size", type=int, choices=[256, 512, 768, 1024], default=1024)
     parser.add_argument("--top_p", type=float, default=1.0)

@@ -26,7 +26,7 @@ env/
 .DS_Store
 wandb
 output
-visualize
+visualize/
 
 ./eval/
 checkpoints/

@@ -13,13 +13,19 @@
 #    limitations under the License.
 
 import torch
-
-from vllm import LLM
 from transformers import AutoTokenizer, BitsAndBytesConfig
 
 from simpar.model import *
 from simpar.utils import rank0_print
 from simpar.model.language_model.simpar_qwen2 import SimpARForCausalLM
+
+try:
+    from vllm import LLM
+    IS_VLLM_AVAILABLE = True
+except:
+    rank0_print("VLLM not installed.")
+    IS_VLLM_AVAILABLE = False
+
 
 def load_pretrained_model(model_path, device_map="auto", attn_implementation="flash_attention_2", **kwargs):
     kwargs["device_map"] = device_map

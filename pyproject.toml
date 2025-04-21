@@ -41,14 +41,13 @@ train = [
     "deepspeed==0.14.4",
     "peft==0.4.0",
     "accelerate>=0.29.1",
-    "transformers==4.41.2",
     "bitsandbytes==0.41.0",
     "sentencepiece~=0.1.99",
     "einops==0.6.1",
     "einops-exts==0.0.4",
     "gradio_client==0.2.9",
     "urllib3<=2.0.0",
-    "datasets==2.16.1",
+    "datasets",
     "pydantic==1.10.8",
     "timm",
     "hf_transfer",
@@ -63,6 +62,7 @@ train = [
     "iopath",
     "imageio",
     "ijson",
+    "transformers@git+https://github.com/huggingface/transformers.git@7bbc62474391aff64f63fcc064c975752d1fa4de",
     "trl==0.15.2",
 ]
 

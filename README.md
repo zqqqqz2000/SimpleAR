@@ -1,5 +1,11 @@
 # SimpleAR: Pushing the Frontier of Autoregressive Visual Generation
 
+[![SimpleAR](https://img.shields.io/badge/Arxiv-SimpleAR-d32f2f.svg?logo=arXiv)](https://arxiv.org/abs/2504.11455)&#160;
+<a href='https://huggingface.co/papers/2504.11455'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face%20-paper-yellow'></a>
+<a href='https://huggingface.co/Daniel0724/SimpleAR'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face%20-checkpoints-blue'></a>
+<br>
+
+
 <div style="text-align: center; margin-top: 0px;">
   <a href="https://arxiv.org/abs/2504.11455" target="_blank" style="text-decoration: none; color: #007acc;">
     SimpleAR: Pushing the Frontier of Autoregressive Visual Generation through Pretraining, SFT, and RL
@@ -23,6 +29,12 @@ This paper presents SimpleAR, a vanilla autoregressive visual generation model t
 
 We open-sourced all the training and inference code, hoping to show the potential of autoregressive visual generation and encourage more participation in this research field.
 
+## Updates
+
+- [2025/04/20] We update the installation instructions and [model zoo](https://huggingface.co/collections/Daniel0724/simplear-6805053f5b4b9961ac025136): thanks [syjmelody](https://github.com/syjmelody) and [wusize](https://github.com/wusize) for raising issues.
+- [2025/04/21] Several clarifications: 
+  - stronger models with better generation quality, and more functionality, e.g., editing and controllable generation, will be released in this repo, please stay tuned!
+
 ## Models & Scripts
 
 ### Installation
@@ -35,13 +47,9 @@ python3 -m venv env
 source env/bin/activate
 
 pip install -e ".[train]"
-
-cd transformers
-
-pip install -e .
-
-cd ..
 ```
+
+Note that by default, vllm is not installed. If you want to use vllm, please install it from [this repo](https://github.com/wdrink/vllm), we implement classifier-guidance free (CFG) since it is quite important for visual generation. 
 
 ## Model Zoo
 
@@ -49,10 +57,10 @@ We provide both SFT and RL checkpoints:
 
 | name | GenEval | DPG | HF weights 🤗 |
 |:---|:---:|:---:|:---:|
-| SimpleAR-0.5B-sft | 0.53 | 79.34 | [0.5B-sft](https://huggingface.co/Daniel0724/SimpleAR/tree/main/simplear_0.5B_sft) |
-| SimpleAR-0.5B-rl | 0.59 | 79.66 | [0.5B-grpo](https://huggingface.co/Daniel0724/SimpleAR/tree/main/simplear_0.5B_rl) |
-| SimpleAR-1.5B-sft | 0.61 | 80.11 | [1.5B-sft](https://huggingface.co/Daniel0724/SimpleAR/tree/main/simplear_1.5B_sft) |
-| SimpleAR-1.5B-rl | 0.63 | 81.31 | [1.5B-grpo](https://huggingface.co/Daniel0724/SimpleAR/tree/main/simplear_1.5B_rl) |
+| SimpleAR-0.5B-SFT | 0.53 | 79.34 | [simplear-0.5B-sft](https://huggingface.co/Daniel0724/SimpleAR-0.5B-SFT) |
+| SimpleAR-0.5B-RL | 0.59 | 79.66 | [simplear-0.5B-grpo](https://huggingface.co/Daniel0724/SimpleAR-0.5B-RL) |
+| SimpleAR-1.5B-SFT | 0.61 | 80.11 | [simplear-1.5B-sft](https://huggingface.co/Daniel0724/SimpleAR-1.5B-SFT) |
+| SimpleAR-1.5B-RL | 0.63 | 81.31 | [simplear-1.5B-grpo](https://huggingface.co/Daniel0724/SimpleAR-1.5B-RL) |
 
 We use [Cosmos](https://huggingface.co/nvidia/Cosmos-1.0-Tokenizer-DV8x16x16) as our visual tokenizer, you can download and put it under *./checkpoints/*:
 
@@ -170,8 +178,15 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 bash scripts/eval/bench_dpg.sh
 
 Please follow the instructions in their repo to calculate the metrics.
 
-### Inference with vLLM and SJD
+### Play with Our Model
 
+You can play with SimpleAR with the following command:
+
+```
+python3 generate.py --prompts "Your prompt"
+```
+
+#### serving with vLLM
 vLLM could significantly improve the inference efficiency, you can first install it from [this repo](https://github.com/wdrink/vllm):
 
 ```
@@ -190,15 +205,10 @@ mv vllm_local/vllm ./
 
 then pass *--vllm_serving* in the evaluation script to try vLLM.
 
-We also implement [speculative jacobi decoding (SJD)](https://arxiv.org/abs/2302.01318), you can try it with *--sjd_sampling*.
+#### sampling with SJD
 
-### Play with Our Model
+We also implement [speculative jacobi decoding (SJD)](https://arxiv.org/abs/2410.01699), you can try it with *--sjd_sampling*.
 
-You can play with SimpleAR with the following command:
-
-```
-python3 generate.py
-```
 
 ## Visualizations
 
@@ -213,13 +223,13 @@ python3 generate.py
 If you find this repository helpful, please consider citing:
 ```bib
 @article{wang2025simplear,
-    title={SimpleAR: Pushing the Frontier of Autoregressive Visual Generation through Pretraining, SFT, and RL},
-    author={Wang, Junke and Tian, Zhi and Wang, Xun and Zhang, Xinyu and Huang, Weilin and Wu, Zuxuan and Jiang, Yu-Gang},
-    journal={arXiv preprint arXiv:2504.11455},
-    year={2025}
+  title={SimpleAR: Pushing the Frontier of Autoregressive Visual Generation through Pretraining, SFT, and RL},
+  author={Wang, Junke and Tian, Zhi and Wang, Xun and Zhang, Xinyu and Huang, Weilin and Wu, Zuxuan and Jiang, Yu-Gang},
+  journal={arXiv preprint arXiv:2504.11455},
+  year={2025}
 }
 ```
 
 ## Acknowledgement
 
-We thank [Peize Sun](https://peizesun.github.io/) for the valuable discussions.
+We thank [Peize Sun](https://peizesun.github.io/), [Rui Tian](https://scholar.google.com/citations?user=zTI-OFoAAAAJ&hl=en), [Feng Li](https://fengli-ust.github.io/), and [Teng Yao](https://tyshiwo1.github.io/) for their valuable discussions.

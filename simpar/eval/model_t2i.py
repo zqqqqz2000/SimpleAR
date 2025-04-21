@@ -12,11 +12,10 @@ from torch.utils.data import DataLoader
 from torchvision.utils import save_image
 
 import transformers
-from vllm import SamplingParams
 
 from simpar.model.tokenizer.cosmos_tokenizer.networks import TokenizerConfigs
 from simpar.model.tokenizer.cosmos_tokenizer.video_lib import CausalVideoTokenizer as CosmosTokenizer
-from simpar.model.builder import load_pretrained_model, vllm_t2i
+from simpar.model.builder import load_pretrained_model
 from simpar.utils import disable_torch_init
 from simpar.mm_utils import get_model_name_from_path
 from simpar.train.t2i_data import EvalT2IDataset
@@ -74,79 +73,28 @@ def evaluate(model, vq_model, tokenizer, dataloader, save_dir, args):
         uncond_input_ids = uncond_input_ids.to(args.device)
         uncond_attention_masks = uncond_attention_masks.to(args.device)
 
-        if not args.vllm_serving: # inference with hf
-            input_ids = input_ids.repeat(args.num_images_per_prompt, 1)
-            attention_masks = attention_masks.repeat(args.num_images_per_prompt, 1)
-            uncond_input_ids = uncond_input_ids.repeat(args.num_images_per_prompt, 1)
-            uncond_attention_masks = uncond_attention_masks.repeat(args.num_images_per_prompt, 1)
+        input_ids = input_ids.repeat(args.num_images_per_prompt, 1)
+        attention_masks = attention_masks.repeat(args.num_images_per_prompt, 1)
+        uncond_input_ids = uncond_input_ids.repeat(args.num_images_per_prompt, 1)
+        uncond_attention_masks = uncond_attention_masks.repeat(args.num_images_per_prompt, 1)
 
-            t1 = time.time()
-            if args.sjd_sampling:
-                output_ids = model.generate_visual_sjd(
-                    input_ids,
-                    tokenizer=tokenizer,
-                    negative_prompt_ids=uncond_input_ids,
-                    cfg_scale=args.cfg_scale,
-                    temperature=args.temperature,
-                    max_new_tokens=max_new_tokens,
-                    use_cache=True
-                )
-            
-            else:
-                output_ids = model.generate_visual(
-                    input_ids,
-                    attention_mask=attention_masks,
-                    negative_prompt_ids=uncond_input_ids,
-                    negative_prompt_attention_mask=uncond_attention_masks,
-                    cfg_scale=args.cfg_scale,
-                    do_sample=True if args.temperature > 0 else False,
-                    temperature=args.temperature,
-                    top_p=args.top_p,
-                    top_k=args.top_k,
-                    max_new_tokens=max_new_tokens,
-                    use_cache=True
-                )
-            sampling_time = time.time() - t1
-            llm_time += sampling_time
-            index_sample = output_ids[:, input_ids.shape[1]: input_ids.shape[1] + max_new_tokens].clone()
-        else:
-            if args.top_k is None:
-                sampling_params = SamplingParams(
-                    temperature=args.temperature,
-                    top_p=args.top_p,
-                    max_tokens=max_new_tokens,
-                    guidance_scale=args.cfg_scale
-                )
-            else:
-                sampling_params = SamplingParams(
-                    temperature=args.temperature,
-                    top_p=args.top_p,
-                    top_k=args.top_k,
-                    max_tokens=max_new_tokens,
-                    guidance_scale=args.cfg_scale
-                )
-
-            input_dict = {
-                "prompt_token_ids": input_ids.squeeze(0), 
-                "negative_prompt_token_ids": uncond_input_ids.squeeze(0)
-            }
-
-            output_ids_list = []
-            t1 = time.time()
-            for _ in range(args.num_images_per_prompt):
-                with torch.inference_mode():
-                    outs = model.generate(
-                        input_dict,
-                        sampling_params,
-                        use_tqdm=False
-                    )
-                output_id_tensor = torch.tensor(outs[0].outputs[0].token_ids, dtype=input_ids.dtype, device=input_ids.device)
-                output_ids_list.append(output_id_tensor)
-
-            sampling_time = time.time() - t1
-            llm_time += sampling_time
-            output_ids = torch.stack(output_ids_list, dim=0)
-            index_sample = output_ids.clone()    
+        t1 = time.time()
+        output_ids = model.generate_visual(
+            input_ids,
+            attention_mask=attention_masks,
+            negative_prompt_ids=uncond_input_ids,
+            negative_prompt_attention_mask=uncond_attention_masks,
+            cfg_scale=args.cfg_scale,
+            do_sample=True if args.temperature > 0 else False,
+            temperature=args.temperature,
+            top_p=args.top_p,
+            top_k=args.top_k,
+            max_new_tokens=max_new_tokens,
+            use_cache=True
+        )
+        sampling_time = time.time() - t1
+        llm_time += sampling_time
+        index_sample = output_ids[:, input_ids.shape[1]: input_ids.shape[1] + max_new_tokens].clone() 
         
         # VQGAN decoding
         index_sample = index_sample - len(tokenizer)
@@ -198,7 +146,6 @@ def evaluate(model, vq_model, tokenizer, dataloader, save_dir, args):
 
 
 def main(args):
-    # Model
     disable_torch_init()
 
     # seed everything
@@ -218,19 +165,8 @@ def main(args):
     vq_model.eval()
     vq_model.requires_grad_(False)
 
-    model_path = os.path.expanduser(args.model_path)
-    model_name = get_model_name_from_path(model_path)
-
-    llava_model_args = {
-        "attn_implementation": "sdpa",
-        # "multimodal": False,
-    }
-
-    if not args.vllm_serving:
-        tokenizer, model, _, _  = load_pretrained_model(model_path, **llava_model_args)
-    else:
-        tokenizer, model = vllm_t2i(model_path=model_path)
-
+    model_path = os.path.expanduser(args.model_path)    
+    tokenizer, model, _, _  = load_pretrained_model(model_path, attn_implementation="sdpa")
     dataset = EvalT2IDataset(
         image_folder = args.data_dir, data_path = args.ann_path, tokenizer = tokenizer, image_size=args.image_size, benchmark = args.benchmark, num_chunks=args.num_chunks, chunk_idx=args.chunk_idx
     )
@@ -251,8 +187,6 @@ if __name__ == "__main__":
     parser.add_argument("--benchmark", type=str, default="mjhq")
     parser.add_argument("--data_dir", type=str, default="")
     parser.add_argument("--ann_path", type=str)
-    parser.add_argument("--vllm_serving", action="store_true", default=False)
-    parser.add_argument("--sjd_sampling", action="store_true", default=False)
     parser.add_argument("--save_dir", type=str, default="visualize")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--num-workers", type=int, default=4)

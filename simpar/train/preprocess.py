@@ -67,8 +67,6 @@ def _add_speaker_and_signal(header, source, get_conversation=True):
 
 
 PROMPTS_GEN = [
-    "",
-    "a photo of",
     "A detailed digital painting of ",
     "A highly realistic image of ",
     "An abstract representation of ",
@@ -103,14 +101,13 @@ def preprocess_t2i(
     conversations = []
     for source in sources:
         assert len(source) == 2
-        # put <|vtokens|> as placeholder for vq tokens
         if random.random() < p_drop_cond:
             conversation = "<|t2i|>" + "<|soi|>" + "<|vtokens|>" * vtokens_shape
         else:
             conversation = "<|t2i|>" + random.choice(PROMPTS_GEN) + source[1]["value"] + "<|soi|>" + "<|vtokens|>" * vtokens_shape
-        # print(conversation, vtokens_shape)
+        
         conversations.append(conversation)
-    # tokenize conversations
+    
     input_ids = [tokenizer(prompt, return_tensors="pt").input_ids for prompt in conversations]
     targets = copy.deepcopy(input_ids)
 

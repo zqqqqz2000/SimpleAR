@@ -11,11 +11,7 @@ pip install vllm==0.7.2
 pip install wheel
 pip install flash-attn --no-build-isolation
 
-cd transformers
-
-pip install -e .
-
-cd ..
+pip install "transformers@git+https://github.com/huggingface/transformers.git@7bbc62474391aff64f63fcc064c975752d1fa4de"
 
 git clone https://github.com/huggingface/trl
 
