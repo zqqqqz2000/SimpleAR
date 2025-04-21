@@ -73,7 +73,7 @@ git clone https://huggingface.co/nvidia/Cosmos-1.0-Tokenizer-DV8x16x16
 
 ## Play with Our Model
 
-You can also directly load it with *from_pretrained* now 🤗 !
+You can directly load SimpleAR with *from_pretrained* now 🤗 !
 
 ```python
 import os
