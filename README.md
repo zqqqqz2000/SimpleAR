@@ -109,7 +109,7 @@ ACCELERATE_CPU_AFFINITY=1 \
 torchrun \
     --nnodes=4 \
     --nproc_per_node=8 \
-    llava/train/train_mem.py \
+    simpar/train/train_mem.py \
     --deepspeed scripts/zero3.json \
     --model_name_or_path "/path_to_your_dir/Qwen2.5-0.5B-Instruct" \
     --version "qwen_1_5" \
