@@ -32,8 +32,7 @@ We open-sourced all the training and inference code, hoping to show the potentia
 ## Updates
 
 - [2025/04/20] We update the installation instructions and [model zoo](https://huggingface.co/collections/Daniel0724/simplear-6805053f5b4b9961ac025136): thanks [syjmelody](https://github.com/syjmelody) and [wusize](https://github.com/wusize) for raising issues.
-- [2025/04/21] Several clarifications: 
-  - stronger models with better generation quality, and more functionality, e.g., editing and controllable generation, will be released in this repo, please stay tuned!
+- [2025/04/21] Stronger models with better generation quality, and more functionality, e.g., editing and controllable generation, will be released in this repo, please stay tuned!
 
 ## Models & Scripts
 
