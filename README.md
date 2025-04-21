@@ -73,12 +73,6 @@ git clone https://huggingface.co/nvidia/Cosmos-1.0-Tokenizer-DV8x16x16
 
 ## Play with Our Model
 
-We provide a script to generate images with our model:
-
-```
-python3 generate.py --prompts "Your prompt"
-```
-
 You can also directly load it with *from_pretrained* now 🤗 !
 
 ```python
@@ -249,6 +243,13 @@ Please follow the instructions in their repo to calculate the metrics.
 
 ### Inference Acceleration
 
+We provide a script to generate images with our model:
+
+```
+python3 generate.py --prompts "Your prompt"
+```
+
+
 #### serving with vLLM
 vLLM could significantly improve the inference efficiency, you can first install it from [this repo](https://github.com/wdrink/vllm):
 
@@ -266,7 +267,7 @@ mv vllm vllm_local
 mv vllm_local/vllm ./
 ```
 
-then pass *--vllm_serving* in the evaluation script to try vLLM.
+then pass **--vllm_serving** to *generate.py* to try vLLM.
 
 #### sampling with SJD
 
