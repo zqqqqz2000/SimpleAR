@@ -46,7 +46,7 @@ source env/bin/activate
 pip install -e ".[train]"
 ```
 
-For advanced usage (GRPO training, inference using vLLM), please refer to [TRAIN.md](./docs/TRAIN.md) and [EVAL.md](./docs/EVAL.md) for more details.
+While for advanced usage, please refer to [TRAIN.md](./docs/TRAIN.md) (for GRPO training) and [EVAL.md](./docs/EVAL.md) (for inference with vLLM), respectively.
 
 ## Models & Scripts
 
@@ -73,7 +73,7 @@ git clone https://huggingface.co/nvidia/Cosmos-1.0-Tokenizer-DV8x16x16
 
 ## Play with Our Model (Quick Start)
 
-You can directly load SimpleAR with *from_pretrained* now 🤗! Please refer to [PLAY.md](./docs/PLAY.md) to see how to generate images using our model with minimal efforts.
+You can directly load SimpleAR with *from_pretrained* now 🤗! We provide the demo code in [PLAY.md](./docs/PLAY.md).
 
 
 ## Training
@@ -85,7 +85,7 @@ Please find the instructions on data preparation and training [here](./docs/TRAI
 We provide scripts to evaluate our released checkpoints on [GenEval](https://github.com/djghosh13/geneval) and [DPG-Bench](https://github.com/TencentQQGYLab/ELLA/tree/main/dpg_bench).
 Please see [EVAL.md](./docs/EVAL.md) for more details.
 
-Also, you can generate images with our model using *generate.py*. We implement different acceleration approaches, e.g., vLLM, SJD, and more. Please find instructions in [EVAL.md](./docs/EVAL.md).
+Also, you can generate images with SimpleAR using *generate.py*. We implement different acceleration approaches, e.g., vLLM, [speculative jacobi decoding]((https://arxiv.org/abs/2410.01699)). Please refer to [EVAL.md](./docs/EVAL.md).
 
 ## Visualizations
 
