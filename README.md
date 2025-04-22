@@ -31,8 +31,9 @@ We open-sourced all the training and inference code, hoping to show the potentia
 
 ## Updates
 
-- [2025/04/20] We update the [installation instructions](./docs/TRAIN.md) and [model zoo](https://huggingface.co/collections/Daniel0724/simplear-6805053f5b4b9961ac025136): thanks [syjmelody](https://github.com/syjmelody), [wusize](https://github.com/wusize), and [micky-li-hd](https://github.com/micky-li-hd) for raising issues.
+- [2025/04/20] [Installation instructions](./docs/TRAIN.md) and [model zoo](https://huggingface.co/collections/Daniel0724/simplear-6805053f5b4b9961ac025136) are updated! Thanks [syjmelody](https://github.com/syjmelody), [wusize](https://github.com/wusize), and [micky-li-hd](https://github.com/micky-li-hd) for raising issues.
 - [2025/04/21] Stronger models with better generation quality, and more functionality, e.g., editing and controllable generation, will be released in this repo, please stay tuned!
+- [2025/04/22] We provide a [demo code](./docs/PLAY.md) to play with our released models.
 
 ## Installation
 
@@ -46,7 +47,7 @@ source env/bin/activate
 pip install -e ".[train]"
 ```
 
-While for advanced usage, please refer to [TRAIN.md](./docs/TRAIN.md) (for GRPO training) and [EVAL.md](./docs/EVAL.md) (for inference with vLLM), respectively.
+While for advanced usage, please refer to [TRAIN.md](./docs/TRAIN.md) (GRPO training) and [EVAL.md](./docs/EVAL.md) (inference with vLLM) to setup the environments, respectively.
 
 ## Models & Scripts
 
@@ -61,7 +62,7 @@ We provide both SFT and RL checkpoints:
 | SimpleAR-1.5B-SFT | 0.61 | 80.11 | [simplear-1.5B-sft](https://huggingface.co/Daniel0724/SimpleAR-1.5B-SFT) |
 | SimpleAR-1.5B-RL | 0.63 | 81.31 | [simplear-1.5B-grpo](https://huggingface.co/Daniel0724/SimpleAR-1.5B-RL) |
 
-We use [Cosmos](https://huggingface.co/nvidia/Cosmos-1.0-Tokenizer-DV8x16x16) as our visual tokenizer, you can download and put it under *./checkpoints/*:
+[Cosmos](https://huggingface.co/nvidia/Cosmos-1.0-Tokenizer-DV8x16x16) is used as our visual tokenizer, you can download and put it under *./checkpoints/*:
 
 ```bash
 cd checkpoints
@@ -74,7 +75,6 @@ git clone https://huggingface.co/nvidia/Cosmos-1.0-Tokenizer-DV8x16x16
 ## Play with Our Model (Quick Start)
 
 You can directly load SimpleAR with *from_pretrained* now 🤗! We provide the demo code in [PLAY.md](./docs/PLAY.md).
-
 
 ## Training
 
