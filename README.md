@@ -85,7 +85,7 @@ Please find the instructions on data preparation and training [here](./docs/TRAI
 We provide scripts to evaluate our released checkpoints on [GenEval](https://github.com/djghosh13/geneval) and [DPG-Bench](https://github.com/TencentQQGYLab/ELLA/tree/main/dpg_bench).
 Please see [EVAL.md](./docs/EVAL.md) for more details.
 
-Also, you can generate images with SimpleAR using *generate.py*. We implement different acceleration approaches, e.g., vLLM, [speculative jacobi decoding]((https://arxiv.org/abs/2410.01699)). Please refer to [EVAL.md](./docs/EVAL.md).
+Also, you can generate images with SimpleAR using *generate.py*. We implement different acceleration approaches, e.g., vLLM, [speculative jacobi decoding](https://arxiv.org/abs/2410.01699). Please refer to [EVAL.md](./docs/EVAL.md).
 
 ## Visualizations
 
