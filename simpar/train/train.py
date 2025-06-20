@@ -696,8 +696,6 @@ def get_model(model_args, training_args, bnb_model_from_pretrained_args):
         assert training_args.model_max_length == int(cfg_pretrained.max_position_embeddings * model_args.rope_scaling_factor), print(
             f"model_max_length: {training_args.model_max_length}, max_position_embeddings: {cfg_pretrained.max_position_embeddings}, rope_scaling_factor: {model_args.rope_scaling_factor}"
         )
-        # overwrite_config["max_sequence_length"] = model_args.max_sequence_length
-        # overwrite_config["tokenizer_model_max_length"] = model_args.tokenizer_model_max_length
 
     if model_args.mm_spatial_pool_stride is not None and model_args.mm_spatial_pool_out_channels is not None and model_args.mm_spatial_pool_mode is not None and model_args.mm_resampler_type is not None:
         overwrite_config["mm_resampler_type"] = model_args.mm_resampler_type
@@ -1089,7 +1087,6 @@ def train(attn_implementation=None):
     model.vtoken_placehold_id = tokenizer.convert_tokens_to_ids(["<|vtokens|>"])
     model.pad_token_id = tokenizer.pad_token_id
     model.ignore_token_id = IGNORE_INDEX
-    model.sequence_length = data_args.sequence_length
 
     if training_args.bits in [4, 8]:
         from peft.tuners.lora import LoraLayer
