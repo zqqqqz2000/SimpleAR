@@ -35,10 +35,21 @@ from trl.trainer.utils import pad
 
 from hpsv2.src.open_clip import create_model_and_transforms, get_tokenizer
 from simpar.grpo.configs import GRPOConfig
-from simpar.grpo.rewards import (accuracy_reward, aesthetic_reward, clip_reward, code_reward, finevqa_reward,
-                                 format_reward, get_code_format_reward, get_cosine_scaled_reward,
-                                 get_repetition_penalty_reward, hps_reward, len_reward, reasoning_steps_reward,
-                                 tag_count_reward)
+from simpar.grpo.rewards import (
+    accuracy_reward,
+    aesthetic_reward,
+    clip_reward,
+    code_reward,
+    finevqa_reward,
+    format_reward,
+    get_code_format_reward,
+    get_cosine_scaled_reward,
+    get_repetition_penalty_reward,
+    hps_reward,
+    len_reward,
+    reasoning_steps_reward,
+    tag_count_reward,
+)
 from simpar.grpo.utils.callbacks import get_callbacks
 from simpar.grpo.utils.wandb_logging import init_wandb_training
 from simpar.model.multimodal_encoder.cosmos_tokenizer.networks import TokenizerConfigs

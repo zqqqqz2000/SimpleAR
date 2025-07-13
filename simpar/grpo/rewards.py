@@ -26,7 +26,7 @@ if is_e2b_available():
 
 # 添加FineVQAReward的导入检查
 try:
-    from fine_vqa_reward import FineVQAReward
+    from simpar.train.reward import FineVQAReward
 
     _finevqa_available = True
 except ImportError:
@@ -479,7 +479,7 @@ def finevqa_reward(completions, prompts, **kwargs):
         List of reward scores
     """
     if not is_finevqa_available():
-        raise ImportError("FineVQAReward is not available. Please install the fine_vqa_reward package.")
+        raise ImportError("FineVQAReward is not available. Please install the t2v_metrics package.")
 
     # Initialize the reward model
     reward_model = FineVQAReward(model="clip-flant5-xxl")
@@ -494,20 +494,37 @@ def finevqa_reward(completions, prompts, **kwargs):
     for i, completion in enumerate(completions):
         # Get the generated image from completion
         image = completion[0].get("image", None)
-        images.append(image)
+
+        # 如果image是PIL Image，需要转换为文件路径或者保存为临时文件
+        if image is not None:
+            # 这里假设image是PIL Image对象，需要保存为临时文件
+            import os
+            import tempfile
+
+            if hasattr(image, "save"):  # PIL Image
+                temp_file = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
+                image.save(temp_file.name)
+                image_path = temp_file.name
+            else:
+                # 如果已经是路径，直接使用
+                image_path = str(image)
+        else:
+            image_path = None
+
+        images.append(image_path)
 
         # Extract scene information from original_data
         if i < len(original_data) and original_data[i]:
             scene_info = original_data[i]
             prompt_ = scene_info.get("prompt", "")
-            qa_ = scene_info.get("qa", [])
+            qa_ = scene_info.get("qa", {})
             difficulty_ = scene_info.get("difficulty", "unknown")
         else:
             # Fallback: extract from prompts
             prompt_ = prompts[i] if i < len(prompts) else ""
             # 尝试从prompt中提取原始信息
             clean_prompt = prompt_.strip("<|t2i|>").strip("<|soi|>")
-            qa_ = []
+            qa_ = {}
             difficulty_ = "unknown"
 
         scene_data.append({"prompt": prompt_, "qa": qa_, "difficulty": difficulty_})
@@ -517,9 +534,13 @@ def finevqa_reward(completions, prompts, **kwargs):
     valid_scene_data = []
     valid_indices = []
 
-    for i, (image, scene) in enumerate(zip(images, scene_data)):
-        if image is not None:
-            valid_images.append(image)
+    for i, (image_path, scene) in enumerate(zip(images, scene_data)):
+        if (
+            image_path is not None
+            and scene.get("qa")
+            and any(scene["qa"].get(cat, []) for cat in ["object", "count", "attribute", "relation"])
+        ):
+            valid_images.append(image_path)
             valid_scene_data.append(scene)
             valid_indices.append(i)
 
@@ -527,14 +548,12 @@ def finevqa_reward(completions, prompts, **kwargs):
         # No valid images, return zero rewards
         return [0.0] * len(completions)
 
-    # Compute VQA scores using the specified format
+    # Compute VQA scores using the actual FineVQAReward implementation
     try:
-        # 根据您提供的使用方式重新构造数据
-        formatted_data = []
-        for scene in valid_scene_data:
-            formatted_data.append({"prompt": scene["prompt"], "qa": scene["qa"], "difficulty": scene["difficulty"]})
-
-        vqa_scores = reward_model(valid_images, formatted_data)
+        vqa_scores = reward_model(valid_images, valid_scene_data)
+        # Convert tensor to list if needed
+        if hasattr(vqa_scores, "tolist"):
+            vqa_scores = vqa_scores.tolist()
     except Exception as e:
         print(f"Error computing VQA scores: {e}")
         return [0.0] * len(completions)
@@ -544,6 +563,14 @@ def finevqa_reward(completions, prompts, **kwargs):
     for i, idx in enumerate(valid_indices):
         if i < len(vqa_scores):
             rewards[idx] = float(vqa_scores[i])
+
+    # Clean up temporary files
+    for image_path in valid_images:
+        if image_path and os.path.exists(image_path) and image_path.startswith("/tmp"):
+            try:
+                os.unlink(image_path)
+            except:
+                pass
 
     return rewards
 

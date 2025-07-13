@@ -18,8 +18,15 @@ from typing import Any
 
 import numpy as np
 import torch
-from cosmos_tokenizer.utils import (load_decoder_model, load_encoder_model, load_model, numpy2tensor, pad_image_batch,
-                                    tensor2numpy, unpad_image_batch)
+from cosmos_tokenizer.utils import (
+    load_decoder_model,
+    load_encoder_model,
+    load_model,
+    numpy2tensor,
+    pad_image_batch,
+    tensor2numpy,
+    unpad_image_batch,
+)
 
 
 class ImageTokenizer(torch.nn.Module):

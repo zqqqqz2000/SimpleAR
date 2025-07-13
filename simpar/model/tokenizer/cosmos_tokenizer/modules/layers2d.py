@@ -25,6 +25,7 @@ https://github.com/CompVis/stable-diffusion/blob/
 import math
 
 import numpy as np
+
 # pytorch_diffusion + derived encoder decoder
 import torch
 import torch.nn as nn
