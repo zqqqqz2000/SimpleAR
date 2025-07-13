@@ -1,4 +1,5 @@
 import torch
+
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
 import torch.distributed as dist
@@ -18,9 +19,15 @@ from simpar.model.tokenizer.cosmos_tokenizer.networks import TokenizerConfigs
 from simpar.model.tokenizer.cosmos_tokenizer.video_lib import CausalVideoTokenizer as CosmosTokenizer
 from simpar.train.t2i_data import T2IDataset
 
+
 @dataclass
 class DataArguments:
-    data_path: str = field(default=None, metadata={"help": "Path to the training data, in llava's instruction.json format. Supporting multiple json files via /path/to/{a,b,c}.json"})
+    data_path: str = field(
+        default=None,
+        metadata={
+            "help": "Path to the training data, in llava's instruction.json format. Supporting multiple json files via /path/to/{a,b,c}.json"
+        },
+    )
     lazy_preprocess: bool = False
     is_multimodal: bool = False
     early_mix_text: bool = False
@@ -52,9 +59,8 @@ class DataArguments:
     dataset_name: str = field(default="laion")
     dataset_type: str = field(default="image")
     code_path: str = field(default="./debug")
-    
-    crop_type: str = field(default="centercrop")
 
+    crop_type: str = field(default="centercrop")
 
 
 def gather_meta(meta):
@@ -64,6 +70,7 @@ def gather_meta(meta):
     dist.all_gather_object(gathered_meta, meta)  # Gather lists of dictionaries
     merged_meta = sum(gathered_meta, [])  # Flatten the list
     return merged_meta
+
 
 def main(data_args):
     if data_args.dataset_type == "image":
@@ -78,11 +85,14 @@ def main(data_args):
 
     tokenizer_config = TokenizerConfigs["DV"].value
     tokenizer_config.update(dict(spatial_compression=16, temporal_compression=8))
-    model = CosmosTokenizer(checkpoint_enc=f"{data_args.vq_model_ckpt}/encoder.jit", checkpoint_dec=f"{data_args.vq_model_ckpt}/decoder.jit", tokenizer_config=tokenizer_config)
-    
+    model = CosmosTokenizer(
+        checkpoint_enc=f"{data_args.vq_model_ckpt}/encoder.jit",
+        checkpoint_dec=f"{data_args.vq_model_ckpt}/decoder.jit",
+        tokenizer_config=tokenizer_config,
+    )
+
     model.eval()
     model.requires_grad_(False)
-    
 
     init_distributed_mode(data_args)
     rank = dist.get_rank()
@@ -92,26 +102,32 @@ def main(data_args):
     torch.cuda.set_device(device)
 
     model.to(device)
-    dataset = T2IDataset(data_path=data_args.gen_data_path, tokenizer=None, image_size=data_args.gen_resolution, aug="centercrop", data_args=data_args)
+    dataset = T2IDataset(
+        data_path=data_args.gen_data_path,
+        tokenizer=None,
+        image_size=data_args.gen_resolution,
+        aug="centercrop",
+        data_args=data_args,
+    )
     if dist.get_rank() == 0:
         print(f"Starting rank={rank}, seed={seed}, world_size={dist.get_world_size()}.")
         print(f"Extracting image tokens for {len(dataset)} samples.")
-    
+
     sampler = DistributedSampler(
         dataset,
         num_replicas=dist.get_world_size(),
         rank=rank,
         shuffle=False,
     )
-    
+
     loader = DataLoader(
         dataset,
-        batch_size=1, # important!
+        batch_size=1,  # important!
         shuffle=False,
         sampler=sampler,
         num_workers=0,
         pin_memory=True,
-        drop_last=False
+        drop_last=False,
     )
 
     total = 0
@@ -121,7 +137,7 @@ def main(data_args):
 
         image_tensor, _, _ = image
         image_tensor = image_tensor.to(device).to(torch.bfloat16)
-            
+
         if image_tensor.ndim == 5:
             image_tensor = image_tensor.permute(0, 2, 1, 3, 4).contiguous()
         else:
@@ -129,21 +145,21 @@ def main(data_args):
 
         with torch.no_grad():
             (image_token, _) = model.encode(image_tensor)
-        
+
         x = image_token.detach().cpu().numpy()
         train_steps = total + rank
-        
+
         code_path = f"{code_dir}/{train_steps}.npy"
         label_path = f"{label_dir}/{train_steps}.npy"
-        
+
         np.save(code_path, x)
         with open(label_path, "w") as f:
             f.write(raw_caption)
-        
-        
+
         total += dist.get_world_size()
-    
+
     dist.destroy_process_group()
+
 
 if __name__ == "__main__":
     parser = transformers.HfArgumentParser([DataArguments])

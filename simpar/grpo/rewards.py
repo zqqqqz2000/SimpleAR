@@ -16,12 +16,13 @@ _e2b_available = _is_package_available("e2b")
 def is_e2b_available() -> bool:
     return _e2b_available
 
+
 if is_e2b_available():
     from dotenv import load_dotenv
     from e2b_code_interpreter import Sandbox
 
     load_dotenv()
-    
+
 
 def math_reward(completions, **kwargs):
     """Reward function that checks if the completion is a valid math expression."""
@@ -33,30 +34,30 @@ def math_reward(completions, **kwargs):
     return rewards
 
 
-
 def clip_reward(completions, **kwargs):
     image_features = [completion[0]["image_feature"] for completion in completions]
     text_features = [completion[0]["text_feature"] for completion in completions]
-    
+
     rewards = []
     for image, text in zip(image_features, text_features):
         similarity = (image @ text.T).item()
         rewards.append(similarity)
-    
+
     return rewards
 
 
 def hps_reward(completions, **kwargs):
     image_features = [completion[0]["image_feature"] for completion in completions]
     text_features = [completion[0]["text_feature"] for completion in completions]
-    
+
     rewards = []
     for image, text in zip(image_features, text_features):
-        logits_per_image = (image @ text.T)
+        logits_per_image = image @ text.T
         hps_score = torch.diagonal(logits_per_image).detach().cpu().numpy()[0]
         rewards.append(hps_score)
-    
+
     return rewards
+
 
 def aesthetic_reward(completions, **kwargs):
     aesthetic_scores = [completion[0]["aesthetic_score"] for completion in completions]
@@ -65,8 +66,9 @@ def aesthetic_reward(completions, **kwargs):
     for aes_score in aesthetic_scores:
         aesthetic_score = aes_score.item()
         rewards.append(aesthetic_score)
-    
+
     return rewards
+
 
 def accuracy_reward(completions, solution, **kwargs):
     """Reward function that checks if the completion is the same as the ground truth."""

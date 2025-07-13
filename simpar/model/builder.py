@@ -21,6 +21,7 @@ from simpar.model.language_model.simpar_qwen2 import SimpARForCausalLM
 
 try:
     from vllm import LLM
+
     IS_VLLM_AVAILABLE = True
 except:
     rank0_print("VLLM not installed.")
@@ -32,7 +33,9 @@ def load_pretrained_model(model_path, device_map="auto", attn_implementation="fl
     kwargs["torch_dtype"] = torch.bfloat16
 
     tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
-    model = SimpARForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, attn_implementation=attn_implementation, **kwargs)
+    model = SimpARForCausalLM.from_pretrained(
+        model_path, low_cpu_mem_usage=True, attn_implementation=attn_implementation, **kwargs
+    )
 
     rank0_print(f"Model Class: {model.__class__.__name__}")
     image_processor = None
@@ -43,5 +46,12 @@ def load_pretrained_model(model_path, device_map="auto", attn_implementation="fl
 
 def vllm_t2i(model_path, device_map="bfloat16"):
     tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
-    model = LLM(model=model_path, tokenizer=model_path, tensor_parallel_size=1, gpu_memory_utilization=0.2, use_v2_block_manager=True, dtype=device_map)
+    model = LLM(
+        model=model_path,
+        tokenizer=model_path,
+        tensor_parallel_size=1,
+        gpu_memory_utilization=0.2,
+        use_v2_block_manager=True,
+        dtype=device_map,
+    )
     return tokenizer, model

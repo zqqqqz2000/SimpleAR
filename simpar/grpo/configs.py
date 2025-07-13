@@ -29,9 +29,7 @@ class GRPOConfig(trl.GRPOConfig):
     benchmarks: list[str] = field(
         default_factory=lambda: [], metadata={"help": "The benchmarks to run after training."}
     )
-    callbacks: list[str] = field(
-        default_factory=lambda: [], metadata={"help": "The callbacks to run during training."}
-    )
+    callbacks: list[str] = field(default_factory=lambda: [], metadata={"help": "The callbacks to run during training."})
     chat_template: Optional[str] = field(default=None, metadata={"help": "The chat template to use."})
     system_prompt: Optional[str] = field(
         default=None,
@@ -61,9 +59,7 @@ class SFTConfig(trl.SFTConfig):
     benchmarks: list[str] = field(
         default_factory=lambda: [], metadata={"help": "The benchmarks to run after training."}
     )
-    callbacks: list[str] = field(
-        default_factory=lambda: [], metadata={"help": "The callbacks to run during training."}
-    )
+    callbacks: list[str] = field(default_factory=lambda: [], metadata={"help": "The callbacks to run during training."})
     chat_template: Optional[str] = field(default=None, metadata={"help": "The chat template to use."})
     system_prompt: Optional[str] = field(
         default=None,

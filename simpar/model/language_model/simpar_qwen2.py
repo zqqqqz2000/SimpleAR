@@ -39,9 +39,7 @@ class CFGLogits(LogitsWarper):
         if self.out is None:
             self.out = self.model(self.inputs, use_cache=True)
         else:
-            self.out = self.model(input_ids[:, -1:],
-                                  use_cache=True,
-                                  past_key_values=self.out.past_key_values)
+            self.out = self.model(input_ids[:, -1:], use_cache=True, past_key_values=self.out.past_key_values)
         unconditional_logits = F.log_softmax(self.out.logits[:, -1], dim=-1)
         out = self.cfg * (scores - unconditional_logits) + unconditional_logits
         return out
@@ -50,7 +48,7 @@ class CFGLogits(LogitsWarper):
 class SimpARForCausalLM(Qwen2ForCausalLM):
     def __init__(self, config):
         Qwen2ForCausalLM.__init__(self, config)
-    
+
     @torch.no_grad()
     def generate_visual_sjd(
         self,
@@ -58,7 +56,7 @@ class SimpARForCausalLM(Qwen2ForCausalLM):
         tokenizer,
         **kwargs,
     ) -> Union[GenerateOutput, torch.LongTensor]:
-        
+
         max_steps = kwargs["max_new_tokens"]
         height, width = int(math.sqrt(max_steps)), int(math.sqrt(max_steps))
         negative_prompt_ids = kwargs.pop("negative_prompt_ids", None)
@@ -68,30 +66,26 @@ class SimpARForCausalLM(Qwen2ForCausalLM):
 
         device = inputs.device
         input_length = inputs.size(1)
-        
+
         accepted_tokens = inputs.clone()
         generated_tokens = torch.tensor([], dtype=torch.long, device=device)
         draft_tokens = None
         prev_draft_probs = None
-        
+
         for it in range(max_steps):
             # 1. Initialize Draft Tokens -------------------------------------------
             if draft_tokens is None:
-                draft_tokens = torch.full(
-                    (1, max_steps),
-                    tokenizer.pad_token_id,
-                    device=device
-                )
-            
+                draft_tokens = torch.full((1, max_steps), tokenizer.pad_token_id, device=device)
+
             # 2. Forward Pass + CFG -----------------------------------------------
             cond_sequence = torch.cat([accepted_tokens, draft_tokens], dim=1)
             logits = self(cond_sequence).logits
-            cond_draft_logits = logits[:, accepted_tokens.size(1)-1: -1, :]
+            cond_draft_logits = logits[:, accepted_tokens.size(1) - 1 : -1, :]
 
             if cfg_scale > 1.0 and negative_prompt_ids is not None:
                 neg_sequence = torch.cat([negative_prompt_ids, draft_tokens], dim=1)
                 uncond_logits = self(neg_sequence).logits
-                uncond_draft_logits = uncond_logits[:, negative_prompt_ids.size(1)-1: -1, :]
+                uncond_draft_logits = uncond_logits[:, negative_prompt_ids.size(1) - 1 : -1, :]
                 draft_logits = uncond_draft_logits + cfg_scale * (cond_draft_logits - uncond_draft_logits)
             else:
                 draft_logits = cond_draft_logits
@@ -112,7 +106,7 @@ class SimpARForCausalLM(Qwen2ForCausalLM):
                 # Update negative prompt if provided
                 if negative_prompt_ids is not None:
                     negative_prompt_ids = torch.cat([negative_prompt_ids, first_token], dim=1)
-                
+
                 prev_draft_probs = draft_probs[:, 1:].detach()
                 draft_tokens = draft_tokens[:, 1:]
                 continue  # Skip first iteration verification
@@ -121,13 +115,13 @@ class SimpARForCausalLM(Qwen2ForCausalLM):
             # Get probabilities for current/previous draft tokens
             current_probs = draft_probs.gather(-1, draft_tokens.unsqueeze(-1)).squeeze(-1)
             prev_probs = prev_draft_probs.gather(-1, draft_tokens.unsqueeze(-1)).squeeze(-1)
-            
+
             # Compute acceptance probability (Eq. 1)
             alpha = (current_probs / (prev_probs + 1e-8)).clamp(max=1.0)
             accept_mask = torch.rand_like(alpha) < alpha
 
             # at least accept several tokens to make sure acceleration
-            accept_mask[:, 0: minumum_acc_tokens] = True
+            accept_mask[:, 0:minumum_acc_tokens] = True
 
             # 6. Find First Rejection ---------------------------------------------
             rejected = (~accept_mask).nonzero(as_tuple=True)
@@ -154,30 +148,25 @@ class SimpARForCausalLM(Qwen2ForCausalLM):
             residual_probs = (draft_probs - prev_draft_probs).clamp(min=0)
             residual_sum = residual_probs.sum(dim=-1, keepdim=True)  # Sum over token dimesion
             calibrated_probs = residual_probs / (residual_sum + 1e-8)
-            
+
             calibrated_probs_slice = calibrated_probs[0, first_reject_pos]
             sampled_token = torch.multinomial(calibrated_probs_slice, num_samples=1).unsqueeze(0)
             first_reject_token = sampled_token
 
-
-            rest_probs = draft_probs[0, first_reject_pos + 1:]
+            rest_probs = draft_probs[0, first_reject_pos + 1 :]
             rest_tokens = torch.multinomial(rest_probs, num_samples=1).transpose(0, 1)
 
             # Rebuild draft tokens and pad to max_steps
             draft_tokens = torch.cat([first_reject_token, rest_tokens], dim=1)
             # Update prev_draft_probs to match new_draft length
-            prev_draft_probs = draft_probs[:, first_reject_pos: , :].detach()
+            prev_draft_probs = draft_probs[:, first_reject_pos:, :].detach()
 
         # 10. Final Output --------------------------------------------------------
-        output = accepted_tokens[:, :input_length + max_steps]
+        output = accepted_tokens[:, : input_length + max_steps]
         if output.size(1) < input_length + max_steps:
-            padding = torch.full(
-                (1, input_length + max_steps - output.size(1)),
-                tokenizer.pad_token_id,
-                device=device
-            )
+            padding = torch.full((1, input_length + max_steps - output.size(1)), tokenizer.pad_token_id, device=device)
             output = torch.cat([output, padding], dim=1)
-        
+
         return output
 
     @torch.no_grad()
@@ -190,14 +179,15 @@ class SimpARForCausalLM(Qwen2ForCausalLM):
         attention_mask = kwargs.pop("attention_mask", None)
         negative_prompt_ids = kwargs.pop("negative_prompt_ids", None)
         cfg_scale = kwargs.pop("cfg_scale", 1.0)
-        
+
         return super().generate(
             inputs=inputs,
             position_ids=position_ids,
             attention_mask=attention_mask,
-            logits_processor=LogitsProcessorList([
-                CFGLogits(cfg_scale, negative_prompt_ids, self),
-            ]),
-            **kwargs
+            logits_processor=LogitsProcessorList(
+                [
+                    CFGLogits(cfg_scale, negative_prompt_ids, self),
+                ]
+            ),
+            **kwargs,
         )
-

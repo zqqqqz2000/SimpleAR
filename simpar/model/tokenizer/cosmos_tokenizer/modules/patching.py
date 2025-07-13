@@ -50,9 +50,7 @@ class Patcher(torch.nn.Module):
         super().__init__()
         self.patch_size = patch_size
         self.patch_method = patch_method
-        self.register_buffer(
-            "wavelets", _WAVELETS[patch_method], persistent=_PERSISTENT
-        )
+        self.register_buffer("wavelets", _WAVELETS[patch_method], persistent=_PERSISTENT)
         self.range = range(int(torch.log2(torch.tensor(self.patch_size)).item()))
         self.register_buffer(
             "_arange",
@@ -132,9 +130,7 @@ class Patcher3D(Patcher):
         hl = hl.to(dtype=dtype)
 
         # Handles temporal axis.
-        x = F.pad(
-            x, pad=(max(0, n - 2), n - 1, n - 2, n - 1, n - 2, n - 1), mode=mode
-        ).to(dtype)
+        x = F.pad(x, pad=(max(0, n - 2), n - 1, n - 2, n - 1, n - 2, n - 1), mode=mode).to(dtype)
         xl = F.conv3d(x, hl.unsqueeze(3).unsqueeze(4), groups=g, stride=(2, 1, 1))
         xh = F.conv3d(x, hh.unsqueeze(3).unsqueeze(4), groups=g, stride=(2, 1, 1))
 
@@ -192,9 +188,7 @@ class UnPatcher(torch.nn.Module):
         super().__init__()
         self.patch_size = patch_size
         self.patch_method = patch_method
-        self.register_buffer(
-            "wavelets", _WAVELETS[patch_method], persistent=_PERSISTENT
-        )
+        self.register_buffer("wavelets", _WAVELETS[patch_method], persistent=_PERSISTENT)
         self.range = range(int(torch.log2(torch.tensor(self.patch_size)).item()))
         self.register_buffer(
             "_arange",
@@ -226,24 +220,12 @@ class UnPatcher(torch.nn.Module):
         xll, xlh, xhl, xhh = torch.chunk(x.to(dtype), 4, dim=1)
 
         # Inverse transform.
-        yl = torch.nn.functional.conv_transpose2d(
-            xll, hl.unsqueeze(3), groups=g, stride=(2, 1), padding=(n - 2, 0)
-        )
-        yl += torch.nn.functional.conv_transpose2d(
-            xlh, hh.unsqueeze(3), groups=g, stride=(2, 1), padding=(n - 2, 0)
-        )
-        yh = torch.nn.functional.conv_transpose2d(
-            xhl, hl.unsqueeze(3), groups=g, stride=(2, 1), padding=(n - 2, 0)
-        )
-        yh += torch.nn.functional.conv_transpose2d(
-            xhh, hh.unsqueeze(3), groups=g, stride=(2, 1), padding=(n - 2, 0)
-        )
-        y = torch.nn.functional.conv_transpose2d(
-            yl, hl.unsqueeze(2), groups=g, stride=(1, 2), padding=(0, n - 2)
-        )
-        y += torch.nn.functional.conv_transpose2d(
-            yh, hh.unsqueeze(2), groups=g, stride=(1, 2), padding=(0, n - 2)
-        )
+        yl = torch.nn.functional.conv_transpose2d(xll, hl.unsqueeze(3), groups=g, stride=(2, 1), padding=(n - 2, 0))
+        yl += torch.nn.functional.conv_transpose2d(xlh, hh.unsqueeze(3), groups=g, stride=(2, 1), padding=(n - 2, 0))
+        yh = torch.nn.functional.conv_transpose2d(xhl, hl.unsqueeze(3), groups=g, stride=(2, 1), padding=(n - 2, 0))
+        yh += torch.nn.functional.conv_transpose2d(xhh, hh.unsqueeze(3), groups=g, stride=(2, 1), padding=(n - 2, 0))
+        y = torch.nn.functional.conv_transpose2d(yl, hl.unsqueeze(2), groups=g, stride=(1, 2), padding=(0, n - 2))
+        y += torch.nn.functional.conv_transpose2d(yh, hh.unsqueeze(2), groups=g, stride=(1, 2), padding=(0, n - 2))
 
         if rescale:
             y = y * 2
@@ -284,55 +266,27 @@ class UnPatcher3D(UnPatcher):
         xlll, xllh, xlhl, xlhh, xhll, xhlh, xhhl, xhhh = torch.chunk(x, 8, dim=1)
 
         # Height height transposed convolutions.
-        xll = F.conv_transpose3d(
-            xlll, hl.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2)
-        )
-        xll += F.conv_transpose3d(
-            xllh, hh.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2)
-        )
+        xll = F.conv_transpose3d(xlll, hl.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2))
+        xll += F.conv_transpose3d(xllh, hh.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2))
 
-        xlh = F.conv_transpose3d(
-            xlhl, hl.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2)
-        )
-        xlh += F.conv_transpose3d(
-            xlhh, hh.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2)
-        )
+        xlh = F.conv_transpose3d(xlhl, hl.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2))
+        xlh += F.conv_transpose3d(xlhh, hh.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2))
 
-        xhl = F.conv_transpose3d(
-            xhll, hl.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2)
-        )
-        xhl += F.conv_transpose3d(
-            xhlh, hh.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2)
-        )
+        xhl = F.conv_transpose3d(xhll, hl.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2))
+        xhl += F.conv_transpose3d(xhlh, hh.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2))
 
-        xhh = F.conv_transpose3d(
-            xhhl, hl.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2)
-        )
-        xhh += F.conv_transpose3d(
-            xhhh, hh.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2)
-        )
+        xhh = F.conv_transpose3d(xhhl, hl.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2))
+        xhh += F.conv_transpose3d(xhhh, hh.unsqueeze(2).unsqueeze(3), groups=g, stride=(1, 1, 2))
 
         # Handles width transposed convolutions.
-        xl = F.conv_transpose3d(
-            xll, hl.unsqueeze(2).unsqueeze(4), groups=g, stride=(1, 2, 1)
-        )
-        xl += F.conv_transpose3d(
-            xlh, hh.unsqueeze(2).unsqueeze(4), groups=g, stride=(1, 2, 1)
-        )
-        xh = F.conv_transpose3d(
-            xhl, hl.unsqueeze(2).unsqueeze(4), groups=g, stride=(1, 2, 1)
-        )
-        xh += F.conv_transpose3d(
-            xhh, hh.unsqueeze(2).unsqueeze(4), groups=g, stride=(1, 2, 1)
-        )
+        xl = F.conv_transpose3d(xll, hl.unsqueeze(2).unsqueeze(4), groups=g, stride=(1, 2, 1))
+        xl += F.conv_transpose3d(xlh, hh.unsqueeze(2).unsqueeze(4), groups=g, stride=(1, 2, 1))
+        xh = F.conv_transpose3d(xhl, hl.unsqueeze(2).unsqueeze(4), groups=g, stride=(1, 2, 1))
+        xh += F.conv_transpose3d(xhh, hh.unsqueeze(2).unsqueeze(4), groups=g, stride=(1, 2, 1))
 
         # Handles time axis transposed convolutions.
-        x = F.conv_transpose3d(
-            xl, hl.unsqueeze(3).unsqueeze(4), groups=g, stride=(2, 1, 1)
-        )
-        x += F.conv_transpose3d(
-            xh, hh.unsqueeze(3).unsqueeze(4), groups=g, stride=(2, 1, 1)
-        )
+        x = F.conv_transpose3d(xl, hl.unsqueeze(3).unsqueeze(4), groups=g, stride=(2, 1, 1))
+        x += F.conv_transpose3d(xh, hh.unsqueeze(3).unsqueeze(4), groups=g, stride=(2, 1, 1))
 
         if rescale:
             x = x * (2 * torch.sqrt(torch.tensor(2.0)))

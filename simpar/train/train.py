@@ -51,6 +51,7 @@ from simpar.train.t2token_data import T2TokenDataset
 from simpar.train.preprocess import preprocess, preprocess_multimodal
 
 from simpar.model.language_model.modeling_qwen2 import Qwen2ForCausalLM, Qwen2Config
+
 torch.multiprocessing.set_sharing_strategy("file_system")
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -62,10 +63,18 @@ IS_TOKENIZER_GREATER_THAN_0_14 = version.parse(tokenizers.__version__) >= versio
 @dataclass
 class ModelArguments:
     model_name_or_path: Optional[str] = field(default="facebook/opt-125m")
-    model_class_name: Optional[str] = field(default=None, metadata={"help": "Used to init model class, format is XXXXForCausalLM. e.g. currently XXXX is chosen from LlavaLlama, LlavaMixtral, LlavaMistral, Llama"})
+    model_class_name: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "Used to init model class, format is XXXXForCausalLM. e.g. currently XXXX is chosen from LlavaLlama, LlavaMixtral, LlavaMistral, Llama"
+        },
+    )
 
     mm_tunable_parts: Optional[str] = field(
-        default=None, metadata={"help": 'Could be "mm_mlp_adapter", "mm_vision_resampler", "mm_vision_tower,mm_mlp_adapter,mm_language_model", "mm_vision_tower,mm_mlp_adapter,mm_language_model", "mm_mlp_adapter,mm_language_model"'}
+        default=None,
+        metadata={
+            "help": 'Could be "mm_mlp_adapter", "mm_vision_resampler", "mm_vision_tower,mm_mlp_adapter,mm_language_model", "mm_vision_tower,mm_mlp_adapter,mm_language_model", "mm_mlp_adapter,mm_language_model"'
+        },
     )
     # deciding which part of the multimodal model to tune, will overwrite other previous settings
 
@@ -112,7 +121,6 @@ class ModelArguments:
     use_pos_skipping: Optional[bool] = field(default=False)
     pos_skipping_range: Optional[int] = field(default=4096)
 
-
     mm_newline_position: Optional[str] = field(default="grid")
     delay_load: Optional[bool] = field(default=True)
     add_faster_video: Optional[bool] = field(default=False)
@@ -127,7 +135,12 @@ class ModelArguments:
 
 @dataclass
 class DataArguments:
-    data_path: str = field(default=None, metadata={"help": "Path to the training data, in llava's instruction.json format. Supporting multiple json files via /path/to/{a,b,c}.json"})
+    data_path: str = field(
+        default=None,
+        metadata={
+            "help": "Path to the training data, in llava's instruction.json format. Supporting multiple json files via /path/to/{a,b,c}.json"
+        },
+    )
     lazy_preprocess: bool = False
     is_multimodal: bool = False
     early_mix_text: bool = False
@@ -150,6 +163,7 @@ class DataArguments:
     p_drop_cond: float = field(default=0.0)
     sample_short: Optional[bool] = field(default=False)
 
+
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
     cache_dir: Optional[str] = field(default=None)
@@ -162,8 +176,12 @@ class TrainingArguments(transformers.TrainingArguments):
         default=4096,
         metadata={"help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."},
     )
-    double_quant: bool = field(default=True, metadata={"help": "Compress the quantization statistics through double quantization."})
-    quant_type: str = field(default="nf4", metadata={"help": "Quantization data type to use. Should be one of `fp4` or `nf4`."})
+    double_quant: bool = field(
+        default=True, metadata={"help": "Compress the quantization statistics through double quantization."}
+    )
+    quant_type: str = field(
+        default="nf4", metadata={"help": "Quantization data type to use. Should be one of `fp4` or `nf4`."}
+    )
     bits: int = field(default=16, metadata={"help": "How many bits to use."})
     lora_enable: bool = False
     lora_r: int = 64
@@ -179,7 +197,9 @@ class TrainingArguments(transformers.TrainingArguments):
     auto_find_batch_size: bool = field(default=False)
     gradient_checkpointing: bool = field(default=True)
     verbose_logging: bool = field(default=False)
-    attn_implementation: str = field(default="flash_attention_2", metadata={"help": "Use transformers attention implementation."})
+    attn_implementation: str = field(
+        default="flash_attention_2", metadata={"help": "Use transformers attention implementation."}
+    )
 
 
 def maybe_zero_3(param, ignore_status=False, name=None):
@@ -258,7 +278,12 @@ def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: st
     if hasattr(trainer.args, "tune_mm_mlp_adapter") and trainer.args.tune_mm_mlp_adapter:
         check_only_save_mm_adapter_tunnable = True
     # only has mm_mlp_adapter and mm_vision_resampler in the tuneable parts
-    elif hasattr(trainer.args, "mm_tunable_parts") and (len(trainer.args.mm_tunable_parts.split(",")) == 1 and ("mm_mlp_adapter" in trainer.args.mm_tunable_parts or "mm_vision_resampler" in trainer.args.mm_tunable_parts)):
+    elif hasattr(trainer.args, "mm_tunable_parts") and (
+        len(trainer.args.mm_tunable_parts.split(",")) == 1
+        and (
+            "mm_mlp_adapter" in trainer.args.mm_tunable_parts or "mm_vision_resampler" in trainer.args.mm_tunable_parts
+        )
+    ):
         check_only_save_mm_adapter_tunnable = True
     else:
         check_only_save_mm_adapter_tunnable = False
@@ -309,16 +334,14 @@ def smart_tokenizer_and_embedding_resize(
     """
     num_new_tokens = tokenizer.add_special_tokens(special_tokens_dict)
     model.resize_token_embeddings(visual_tokens + len(tokenizer))
-    
+
     if num_new_tokens > 0:
         input_embeddings = model.get_input_embeddings().weight.data
         output_embeddings = model.get_output_embeddings().weight.data
 
         added_new_tokens = num_new_tokens + visual_tokens
-        input_embeddings_avg = input_embeddings[:-added_new_tokens].mean(
-            dim=0, keepdim=True)
-        output_embeddings_avg = output_embeddings[:-added_new_tokens].mean(
-            dim=0, keepdim=True)
+        input_embeddings_avg = input_embeddings[:-added_new_tokens].mean(dim=0, keepdim=True)
+        output_embeddings_avg = output_embeddings[:-added_new_tokens].mean(dim=0, keepdim=True)
 
         input_embeddings[-added_new_tokens:] = input_embeddings_avg
         output_embeddings[-added_new_tokens:] = output_embeddings_avg
@@ -514,13 +537,13 @@ class LazySupervisedDataset(Dataset):
             if type(image_file) is list:
                 image = [self.process_image(f) for f in image_file]
                 # Handling multi images
-                # overwrite to process with simple pad 
+                # overwrite to process with simple pad
                 if len(image_file) > 1:
                     image = [self.process_image(f, "pad") for f in image_file]
                     image = [[im[0], im[1], "image"] for im in image]
             else:
                 image = [self.process_image(image_file)]
-            
+
             sources = preprocess_multimodal(copy.deepcopy([e["conversations"] for e in sources]), self.data_args)
 
         elif "video" in sources[0]:
@@ -533,7 +556,11 @@ class LazySupervisedDataset(Dataset):
 
             try:
                 if "shareVideoGPTV" in video_file:
-                    frame_files = [os.path.join(video_file, f) for f in os.listdir(video_file) if os.path.isfile(os.path.join(video_file, f))]
+                    frame_files = [
+                        os.path.join(video_file, f)
+                        for f in os.listdir(video_file)
+                        if os.path.isfile(os.path.join(video_file, f))
+                    ]
                     frame_files.sort()  # Ensure the frames are sorted if they are named sequentially
 
                     # TODO: Hard CODE: Determine the indices for uniformly sampling 10 frames
@@ -543,12 +570,11 @@ class LazySupervisedDataset(Dataset):
                         num_frames_to_sample = 10
 
                     avg_fps = 2
-                    
+
                     total_frames = len(frame_files)
                     sampled_indices = np.linspace(0, total_frames - 1, num_frames_to_sample, dtype=int)
 
-
-                    frame_time = [i/2 for i in sampled_indices]
+                    frame_time = [i / 2 for i in sampled_indices]
                     frame_time = ",".join([f"{i:.2f}s" for i in frame_time])
 
                     video_time = total_frames / avg_fps
@@ -564,13 +590,17 @@ class LazySupervisedDataset(Dataset):
                         except IOError:
                             print(f"Failed to read frame at path: {frame_path}")
                 else:
-                    video, video_time, frame_time, num_frames_to_sample = process_video_with_decord(video_file, self.data_args)
+                    video, video_time, frame_time, num_frames_to_sample = process_video_with_decord(
+                        video_file, self.data_args
+                    )
 
                 processor = self.data_args.image_processor
                 image = processor.preprocess(video, return_tensors="pt")["pixel_values"]
                 if self.data_args.add_time_instruction:
                     time_instruciton = f"The video lasts for {video_time:.2f} seconds, and {num_frames_to_sample} frames are uniformly sampled from it. These frames are located at {frame_time}.Please answer the following questions related to this video."
-                    sources[0]["conversations"][0]["value"] = f'{DEFAULT_IMAGE_TOKEN}\n{time_instruciton}\n{sources[0]["conversations"][0]["value"].replace(DEFAULT_IMAGE_TOKEN, "")}'
+                    sources[0]["conversations"][0][
+                        "value"
+                    ] = f'{DEFAULT_IMAGE_TOKEN}\n{time_instruciton}\n{sources[0]["conversations"][0]["value"].replace(DEFAULT_IMAGE_TOKEN, "")}'
                 image = [(image, video[0].size, "video")]
                 sources = preprocess_multimodal(copy.deepcopy([e["conversations"] for e in sources]), self.data_args)
                 # print(sources)
@@ -601,7 +631,11 @@ class LazySupervisedDataset(Dataset):
             # image does not exist in the data, but the model is multimodal
             crop_size = self.data_args.image_processor.crop_size
             data_dict["image"] = [
-                (torch.zeros(1, 3, crop_size["height"], crop_size["width"]), (crop_size["width"], crop_size["height"]), "text"),
+                (
+                    torch.zeros(1, 3, crop_size["height"], crop_size["width"]),
+                    (crop_size["width"], crop_size["height"]),
+                    "text",
+                ),
             ]
         # prompt exist in the data
         if prompt is not None:
@@ -629,18 +663,24 @@ class DataCollatorForSupervisedDataset(object):
 
     def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
         assert instances[0]["data_type"] in ["und", "image_gen", "video_gen"]
-        input_ids, labels, data_types = tuple([instance[key] for instance in instances] for key in ("input_ids", "labels", "data_type"))
+        input_ids, labels, data_types = tuple(
+            [instance[key] for instance in instances] for key in ("input_ids", "labels", "data_type")
+        )
 
         input_ids = [_input_ids[: self.tokenizer.model_max_length] for _input_ids in input_ids]
         labels = [_labels[: self.tokenizer.model_max_length] for _labels in labels]
         if self.tokenizer.pad_token_id is None:
             # self.tokenizer.pad_token_id = self.tokenizer.eos_token_id  # FIXME: this could only be triggered for llama3 model.
-            self.tokenizer.pad_token_id = 0 # This gets the best result. Don't know why.
+            self.tokenizer.pad_token_id = 0  # This gets the best result. Don't know why.
         input_ids = self.pad_sequence(input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id)
         labels = self.pad_sequence(labels, batch_first=True, padding_value=IGNORE_INDEX)
         # batch = dict(input_ids=input_ids, labels=labels.long() if labels.dtype == torch.int32 else labels, attention_mask=input_ids.ne(self.tokenizer.pad_token_id), data_types=data_types)
-        batch = dict(input_ids=input_ids, labels=labels.long() if labels.dtype == torch.int32 else labels, attention_mask=input_ids.ne(self.tokenizer.pad_token_id))
-        
+        batch = dict(
+            input_ids=input_ids,
+            labels=labels.long() if labels.dtype == torch.int32 else labels,
+            attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
+        )
+
         if "prompt" in instances[0]:
             batch["prompts"] = [instance["prompt"] for instance in instances]
 
@@ -650,7 +690,12 @@ class DataCollatorForSupervisedDataset(object):
 def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer, data_args) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
     train_dataset = T2TokenDataset(
-        data_path=data_args.gen_data_path, data_dir=data_args.gen_image_folder, tokenizer=tokenizer, data_args=data_args, p_drop_cond=data_args.p_drop_cond, sample_short=data_args.sample_short
+        data_path=data_args.gen_data_path,
+        data_dir=data_args.gen_image_folder,
+        tokenizer=tokenizer,
+        data_args=data_args,
+        p_drop_cond=data_args.p_drop_cond,
+        sample_short=data_args.sample_short,
     )
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
     return dict(train_dataset=train_dataset, eval_dataset=None, data_collator=data_collator)
@@ -664,7 +709,7 @@ def get_model(model_args, training_args, bnb_model_from_pretrained_args):
     customized_kwargs = dict()
     customized_kwargs.update(bnb_model_from_pretrained_args)
     cfg_pretrained = None
-    
+
     overwrite_config = {}
     if any(
         [
@@ -693,11 +738,18 @@ def get_model(model_args, training_args, bnb_model_from_pretrained_args):
         if training_args.model_max_length is None:
             training_args.model_max_length = cfg_pretrained.max_position_embeddings * model_args.rope_scaling_factor
             overwrite_config["max_sequence_length"] = training_args.model_max_length
-        assert training_args.model_max_length == int(cfg_pretrained.max_position_embeddings * model_args.rope_scaling_factor), print(
+        assert training_args.model_max_length == int(
+            cfg_pretrained.max_position_embeddings * model_args.rope_scaling_factor
+        ), print(
             f"model_max_length: {training_args.model_max_length}, max_position_embeddings: {cfg_pretrained.max_position_embeddings}, rope_scaling_factor: {model_args.rope_scaling_factor}"
         )
 
-    if model_args.mm_spatial_pool_stride is not None and model_args.mm_spatial_pool_out_channels is not None and model_args.mm_spatial_pool_mode is not None and model_args.mm_resampler_type is not None:
+    if (
+        model_args.mm_spatial_pool_stride is not None
+        and model_args.mm_spatial_pool_out_channels is not None
+        and model_args.mm_spatial_pool_mode is not None
+        and model_args.mm_resampler_type is not None
+    ):
         overwrite_config["mm_resampler_type"] = model_args.mm_resampler_type
         overwrite_config["mm_spatial_pool_stride"] = model_args.mm_spatial_pool_stride
         overwrite_config["mm_spatial_pool_out_channels"] = model_args.mm_spatial_pool_out_channels
@@ -705,10 +757,10 @@ def get_model(model_args, training_args, bnb_model_from_pretrained_args):
 
     if model_args.mm_spatial_pool_mode is not None:
         overwrite_config["mm_spatial_pool_mode"] = model_args.mm_spatial_pool_mode
-    
+
     if model_args.vq_model_ckpt is not None:
         overwrite_config["vq_model_ckpt"] = model_args.vq_model_ckpt
-    
+
     if overwrite_config:
         assert cfg_pretrained is not None, "cfg_pretrained is None"
 
@@ -826,7 +878,7 @@ def get_model(model_args, training_args, bnb_model_from_pretrained_args):
             config = Qwen2Config.from_pretrained(model_args.model_name_or_path)
             model = Qwen2ForCausalLM(config)
             print("Warning: Initializing model from scratch.")
-        
+
     return model
 
 
@@ -880,7 +932,9 @@ def train(attn_implementation=None):
     if training_args.bits in [4, 8]:
         from peft import prepare_model_for_kbit_training
 
-        model.config.torch_dtype = torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32)
+        model.config.torch_dtype = (
+            torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32)
+        )
         model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=training_args.gradient_checkpointing)
 
     if training_args.gradient_checkpointing:
@@ -912,10 +966,24 @@ def train(attn_implementation=None):
         rank0_print("Adding LoRA adapters...")
         model = get_peft_model(model, lora_config)
 
-    if "mistral" in model_args.model_name_or_path.lower() or "mixtral" in model_args.model_name_or_path.lower() or "zephyr" in model_args.model_name_or_path.lower():
-        tokenizer = transformers.AutoTokenizer.from_pretrained(model_args.model_name_or_path, cache_dir=training_args.cache_dir, model_max_length=training_args.model_max_length, padding_side="left")
+    if (
+        "mistral" in model_args.model_name_or_path.lower()
+        or "mixtral" in model_args.model_name_or_path.lower()
+        or "zephyr" in model_args.model_name_or_path.lower()
+    ):
+        tokenizer = transformers.AutoTokenizer.from_pretrained(
+            model_args.model_name_or_path,
+            cache_dir=training_args.cache_dir,
+            model_max_length=training_args.model_max_length,
+            padding_side="left",
+        )
     elif "qwen" in model_args.model_name_or_path.lower():
-        tokenizer = transformers.AutoTokenizer.from_pretrained(model_args.model_name_or_path, cache_dir=training_args.cache_dir, model_max_length=training_args.model_max_length, padding_side="right")
+        tokenizer = transformers.AutoTokenizer.from_pretrained(
+            model_args.model_name_or_path,
+            cache_dir=training_args.cache_dir,
+            model_max_length=training_args.model_max_length,
+            padding_side="right",
+        )
     else:
         tokenizer = transformers.AutoTokenizer.from_pretrained(
             model_args.model_name_or_path,
@@ -924,7 +992,7 @@ def train(attn_implementation=None):
             padding_side="right",
             use_fast=False,
         )
-    
+
     rank0_print(f"Prompt version: {model_args.version}")
     if model_args.version == "v0":
         if tokenizer.pad_token is None:
@@ -966,7 +1034,11 @@ def train(attn_implementation=None):
                 range_start = tuple(map(int, matches[0]))
                 range_end = tuple(map(int, matches[-1]))
                 # Generate a matrix of tuples from (range_start[0], range_start[1]) to (range_end[0], range_end[1])
-                grid_pinpoints = [(i, j) for i in range(range_start[0], range_end[0] + 1) for j in range(range_start[1], range_end[1] + 1)]
+                grid_pinpoints = [
+                    (i, j)
+                    for i in range(range_start[0], range_end[0] + 1)
+                    for j in range(range_start[1], range_end[1] + 1)
+                ]
                 # Multiply all elements by patch_size
                 data_args.image_grid_pinpoints = [[dim * patch_size for dim in pair] for pair in grid_pinpoints]
             elif isinstance(data_args.image_grid_pinpoints, str):
@@ -982,12 +1054,14 @@ def train(attn_implementation=None):
         model.config.faster_token_stride = model_args.faster_token_stride
         model.config.add_time_instruction = data_args.add_time_instruction
         model.config.force_sample = data_args.force_sample
-        model.config.mm_spatial_pool_stride = model_args.mm_spatial_pool_stride 
+        model.config.mm_spatial_pool_stride = model_args.mm_spatial_pool_stride
 
         ### Deciding train which part of the model
         if model_args.mm_tunable_parts is None:  # traditional way of deciding which part to train
             model.config.tune_mm_mlp_adapter = training_args.tune_mm_mlp_adapter = model_args.tune_mm_mlp_adapter
-            model.config.tune_mm_vision_resampler = training_args.tune_mm_vision_resampler = model_args.tune_mm_vision_resampler
+            model.config.tune_mm_vision_resampler = training_args.tune_mm_vision_resampler = (
+                model_args.tune_mm_vision_resampler
+            )
             if model_args.tune_mm_mlp_adapter or model_args.tune_mm_vision_resampler:
                 model.requires_grad_(False)
             if model_args.tune_mm_mlp_adapter:
@@ -1021,15 +1095,15 @@ def train(attn_implementation=None):
             vision_tower.requires_grad_(False)
             model.get_model().mm_projector.requires_grad_(False)
             model.get_model().vision_resampler.requires_grad_(False)
-                
+
             # Parse the mm_tunable_parts to decide which parts to unfreeze
             tunable_parts = model_args.mm_tunable_parts.split(",")
             if model_args.share_vt_as_vq:
                 assert "mm_vision_tower" not in tunable_parts
-            
+
             if "omnitokenizer" in model_args.vision_tower:
                 assert "mm_vision_tower" not in tunable_parts
-            
+
             if "mm_mlp_adapter" in tunable_parts:
                 for p in model.get_model().mm_projector.parameters():
                     p.requires_grad = True
@@ -1046,7 +1120,9 @@ def train(attn_implementation=None):
                         param.requires_grad_(True)
 
         total_params = sum(p.ds_numel if hasattr(p, "ds_numel") else p.numel() for p in model.parameters())
-        trainable_params = sum(p.ds_numel if hasattr(p, "ds_numel") else p.numel() for p in model.parameters() if p.requires_grad)
+        trainable_params = sum(
+            p.ds_numel if hasattr(p, "ds_numel") else p.numel() for p in model.parameters() if p.requires_grad
+        )
         rank0_print(f"Total parameters: ~{total_params/1e6:.2f} MB)")
         rank0_print(f"Trainable parameters: ~{trainable_params/1e6:.2f} MB)")
         if training_args.bits in [4, 8]:
@@ -1059,29 +1135,27 @@ def train(attn_implementation=None):
         model.config.mm_use_im_patch_token = model_args.mm_use_im_patch_token
         model.initialize_vision_tokenizer(model_args, tokenizer=tokenizer)
 
-    
     if hasattr(model, "get_vq_model") and model.get_vq_model() is not None:
         vq_model = model.get_vq_model()
         vq_model.requires_grad_(False)
         for name, param in model.named_parameters():
             if "vq_model" in name:
                 param.requires_grad_(False)
-        
+
         codebook_size = vq_model.num_embeddings
 
     else:
         vq_model = None
         codebook_size = 64000
-    
+
     if "<|t2i|>" not in tokenizer.all_special_tokens:
-        special_tokens=("<|t2i|>", "<|i2t|>", "<|soi|>", "<|vtokens|>", "<|t2v|>", "<|v2t|>", "<|sov|>")
+        special_tokens = ("<|t2i|>", "<|i2t|>", "<|soi|>", "<|vtokens|>", "<|t2v|>", "<|v2t|>", "<|sov|>")
         smart_tokenizer_and_embedding_resize(
             special_tokens_dict={"additional_special_tokens": special_tokens},
             tokenizer=tokenizer,
             model=model,
-            visual_tokens = codebook_size,
+            visual_tokens=codebook_size,
         )
-    
 
     model.tokenizer_length = len(tokenizer)
     model.vtoken_placehold_id = tokenizer.convert_tokens_to_ids(["<|vtokens|>"])
@@ -1101,7 +1175,7 @@ def train(attn_implementation=None):
                 if hasattr(module, "weight"):
                     if training_args.bf16 and module.weight.dtype == torch.float32:
                         module = module.to(torch.bfloat16)
-    
+
     data_module = make_supervised_data_module(tokenizer=tokenizer, data_args=data_args)
     trainer = LLaVATrainer(model=model, tokenizer=tokenizer, args=training_args, **data_module)
 
