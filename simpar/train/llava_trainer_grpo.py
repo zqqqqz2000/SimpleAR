@@ -24,38 +24,109 @@ import torch
 import torch.nn as nn
 import transformers
 import wandb
-from accelerate.utils import (broadcast_object_list, gather, gather_object,
-                              set_seed)
+from accelerate.utils import broadcast_object_list, gather, gather_object, set_seed
 from open_clip import OPENAI_DATASET_MEAN, OPENAI_DATASET_STD
 from PIL import Image
 from transformers import AutoTokenizer, set_seed
 from transformers.trainer_utils import get_last_checkpoint
-from trl import (GRPOTrainer, ModelConfig, ScriptArguments, TrlParser,
-                 get_peft_config)
+from trl import GRPOTrainer, ModelConfig, ScriptArguments, TrlParser, get_peft_config
 from trl.models import unwrap_model_for_generation
 from trl.trainer.utils import pad
 
 from hpsv2.src.open_clip import create_model_and_transforms, get_tokenizer
 from simpar.grpo.configs import GRPOConfig
-from simpar.grpo.rewards import (accuracy_reward, aesthetic_reward,
-                                 clip_reward, code_reward, format_reward,
-                                 get_code_format_reward,
-                                 get_cosine_scaled_reward,
-                                 get_repetition_penalty_reward, hps_reward,
-                                 len_reward, reasoning_steps_reward,
+from simpar.grpo.rewards import (accuracy_reward, aesthetic_reward, clip_reward, code_reward, finevqa_reward,
+                                 format_reward, get_code_format_reward, get_cosine_scaled_reward,
+                                 get_repetition_penalty_reward, hps_reward, len_reward, reasoning_steps_reward,
                                  tag_count_reward)
 from simpar.grpo.utils.callbacks import get_callbacks
 from simpar.grpo.utils.wandb_logging import init_wandb_training
-from simpar.model.multimodal_encoder.cosmos_tokenizer.networks import \
-    TokenizerConfigs
-from simpar.model.multimodal_encoder.cosmos_tokenizer.video_lib import \
-    CausalVideoTokenizer as CosmosTokenizer
-from simpar.train.t2i_data import GRPOT2IDataset
+from simpar.model.multimodal_encoder.cosmos_tokenizer.networks import TokenizerConfigs
+from simpar.model.multimodal_encoder.cosmos_tokenizer.video_lib import CausalVideoTokenizer as CosmosTokenizer
+from simpar.train.curr_sampler import CurrDistributedSampler
+from simpar.train.scene_dataset import SceneDataset
 
 logger = logging.getLogger(__name__)
 
 
 class LLaVAGRPOTrainer(GRPOTrainer):
+
+    def get_train_dataloader(self):
+        """
+        Returns the training dataloader with curriculum learning sampler if available.
+        """
+        if hasattr(self, "curriculum_sampler") and self.curriculum_sampler is not None:
+            from torch.utils.data import DataLoader
+
+            # 设置当前epoch到采样器中
+            self.curriculum_sampler.set_epoch(self.state.epoch)
+
+            return DataLoader(
+                self.train_dataset,
+                batch_size=self.args.per_device_train_batch_size,
+                sampler=self.curriculum_sampler,
+                collate_fn=self._scene_data_collator,
+                num_workers=self.args.dataloader_num_workers,
+                pin_memory=self.args.dataloader_pin_memory,
+            )
+        else:
+            # 使用默认的dataloader，但仍然使用自定义的data collator
+            from torch.utils.data import DataLoader
+            from torch.utils.data.distributed import DistributedSampler
+
+            if self.args.local_rank != -1:
+                # 分布式训练但不使用课程学习
+                sampler = DistributedSampler(
+                    self.train_dataset,
+                    num_replicas=self.args.world_size,
+                    rank=self.args.local_rank,
+                    seed=self.args.seed,
+                )
+            else:
+                sampler = None
+
+            return DataLoader(
+                self.train_dataset,
+                batch_size=self.args.per_device_train_batch_size,
+                sampler=sampler,
+                shuffle=(sampler is None),
+                collate_fn=self._scene_data_collator,
+                num_workers=self.args.dataloader_num_workers,
+                pin_memory=self.args.dataloader_pin_memory,
+            )
+
+    def _scene_data_collator(self, batch):
+        """
+        Custom data collator for SceneDataset format.
+        """
+        # 将batch中的每个样本转换为期望的格式
+        formatted_batch = []
+        for item in batch:
+            if isinstance(item, dict):
+                # SceneDataset格式
+                scene_prompt = item.get("prompt", "")
+                qa_data = item.get("qa", [])
+
+                # 从qa数据中提取问题作为prompt，或者直接使用scene_prompt
+                if qa_data and len(qa_data) > 0:
+                    # 使用第一个问题作为prompt
+                    question = qa_data[0].get("question", scene_prompt)
+                    formatted_prompt = f"<|t2i|>{question}<|soi|>"
+                else:
+                    # 如果没有qa数据，使用scene_prompt
+                    formatted_prompt = f"<|t2i|>{scene_prompt}<|soi|>"
+
+                formatted_item = {
+                    "prompt": formatted_prompt,
+                    "difficulty": item.get("difficulty", "unknown"),
+                    "original_data": item,
+                }
+                formatted_batch.append(formatted_item)
+            else:
+                # 兼容旧格式
+                formatted_batch.append(item)
+
+        return formatted_batch
 
     def _decode_images(self, completion_ids):
         device = self.accelerator.device
@@ -97,7 +168,15 @@ class LLaVAGRPOTrainer(GRPOTrainer):
         self, inputs: dict[str, Union[torch.Tensor, Any]]
     ) -> dict[str, Union[torch.Tensor, Any]]:
         device = self.accelerator.device
-        prompts = [x["prompt"] for x in inputs]
+        # 数据已经在data collator中处理过了，直接提取prompt
+        prompts = []
+        for x in inputs:
+            if isinstance(x, dict) and "prompt" in x:
+                prompts.append(x["prompt"])
+            else:
+                # 兼容旧格式或直接是prompt字符串
+                prompts.append(x.get("prompt", str(x)) if isinstance(x, dict) else str(x))
+
         prompts_text = [p for p in prompts]
         prompt_inputs = self.processing_class(
             prompts_text, return_tensors="pt", padding=True, padding_side="left", add_special_tokens=False
@@ -175,6 +254,10 @@ class LLaVAGRPOTrainer(GRPOTrainer):
             prompt_ids = prompt_completion_ids[:, :prompt_length]
             completion_ids = prompt_completion_ids[:, prompt_length:]
 
+            # 对于非vLLM路径，也需要解码图像
+            completion_ids_list = [ids.cpu().tolist() for ids in completion_ids]
+            decoded_images, decoded_image_embeds = self._decode_images(completion_ids_list)
+
         # Mask everything after the first EOS token
         is_eos = completion_ids == self.processing_class.eos_token_id
         eos_idx = torch.full((is_eos.size(0),), is_eos.size(1), dtype=torch.long, device=device)
@@ -210,6 +293,8 @@ class LLaVAGRPOTrainer(GRPOTrainer):
                     )
 
         completions = []
+        original_data_list = []
+
         for i, (prompt, image_embed) in enumerate(zip(prompts, decoded_image_embeds)):
             prompt_clean = prompt.strip("<|t2i|>").strip("<|soi|>")
             with torch.inference_mode():
@@ -218,20 +303,59 @@ class LLaVAGRPOTrainer(GRPOTrainer):
                 text_feature /= text_feature.norm(dim=-1, keepdim=True)
 
             image_feature = image_embed.unsqueeze(0).to(device)
+
+            # 获取原始数据（如果有的话）
+            original_data = None
+            if i < len(inputs) and isinstance(inputs[i], dict):
+                original_data = inputs[i].get("original_data", {})
+
+            # 将生成的图像添加到completion中
+            # 注意：这里需要根据实际的图像格式进行调整
+            # decoded_images应该是PIL Image或tensor格式
+            generated_image = decoded_images[i] if i < len(decoded_images) else None
+
+            # 如果是tensor，需要转换为PIL Image
+            if generated_image is not None and hasattr(generated_image, "cpu"):
+                # 假设是tensor格式，需要转换为PIL Image
+                import torchvision.transforms as transforms
+                from PIL import Image
+
+                # 将tensor转换为PIL Image
+                if generated_image.dim() == 3:  # C, H, W
+                    # 反归一化
+                    generated_image = generated_image.cpu()
+                    # 将值范围从[-1, 1]转换到[0, 1]
+                    generated_image = (generated_image + 1.0) / 2.0
+                    generated_image = torch.clamp(generated_image, 0, 1)
+
+                    # 转换为PIL Image
+                    to_pil = transforms.ToPILImage()
+                    generated_image = to_pil(generated_image)
+
             completions.append(
                 [
                     {
                         "image_feature": image_feature,
                         "text_feature": text_feature,
+                        "image": generated_image,  # 添加生成的图像
                     }
                 ]
             )
+
+            # 收集原始数据用于reward计算
+            original_data_list.append(original_data or {})
 
         rewards_per_func = torch.zeros(len(prompts), len(self.reward_funcs), device=device)
         for i, (reward_func, reward_processing_class) in enumerate(
             zip(self.reward_funcs, self.reward_processing_classes)
         ):
-            output_reward_func = reward_func(prompts=prompts, completions=completions)
+            # 为finevqa_reward传递额外的参数
+            if reward_func.__name__ == "finevqa_reward":
+                output_reward_func = reward_func(
+                    completions=completions, prompts=prompts, original_data=original_data_list
+                )
+            else:
+                output_reward_func = reward_func(prompts=prompts, completions=completions)
             rewards_per_func[:, i] = torch.tensor(output_reward_func, dtype=torch.float32, device=device)
 
         # Gather the reward per function: this part is crucial, because the rewards are normalized per group and the
@@ -304,9 +428,9 @@ class GRPOScriptArguments(ScriptArguments):
     """
 
     reward_funcs: list[str] = field(
-        default_factory=lambda: ["accuracy", "format", "tag_count"],
+        default_factory=lambda: ["finevqa"],
         metadata={
-            "help": "List of reward functions. Possible values: 'accuracy', 'format', 'format_deepseek', 'reasoning_steps', 'cosine', 'repetition_penalty', 'length', tag_count', 'code', 'code_format'"
+            "help": "List of reward functions. Possible values: 'accuracy', 'format', 'format_deepseek', 'reasoning_steps', 'cosine', 'repetition_penalty', 'length', tag_count', 'code', 'code_format', 'finevqa'"
         },
     )
     cosine_min_value_wrong: float = field(
@@ -346,8 +470,27 @@ class GRPOScriptArguments(ScriptArguments):
     )
 
     data_path: str = field(
-        default="",
+        default="./data/curr_rft_data_20250709.json",
         metadata={"help": "Path to the generated data"},
+    )
+
+    # 添加课程学习相关参数
+    curriculum_strategy: str = field(
+        default="balance",
+        metadata={
+            "help": "Curriculum learning strategy",
+            "choices": ["timestep", "balance", "cosine", "gaussian"],
+        },
+    )
+
+    curriculum_alpha: float = field(
+        default=1.0,
+        metadata={"help": "Gaussian schedule width parameter for curriculum learning"},
+    )
+
+    curriculum_beta: float = field(
+        default=1.0,
+        metadata={"help": "Gaussian schedule progression speed for curriculum learning"},
     )
 
     vq_model_ckpt: str = field(default="/path_to_tokenizer/Cosmos-1.0-Tokenizer-DV8x16x16")
@@ -434,8 +577,9 @@ def main(script_args, training_args, model_args):
     clip_model = clip_model.to("cuda")
     clip_model.eval()
 
-    # Load the dataset
-    dataset = GRPOT2IDataset(data_path=script_args.data_path, tokenizer=tokenizer)
+    # Load the dataset - 使用新的SceneDataset
+    dataset = SceneDataset(script_args.data_path)
+    logger.info(f"Loaded {len(dataset)} samples from {script_args.data_path}")
 
     # Get reward functions
     REWARD_FUNCS_REGISTRY = {
@@ -460,6 +604,7 @@ def main(script_args, training_args, model_args):
         "clip": clip_reward,
         "aesthetic": aesthetic_reward,
         "hps": hps_reward,
+        "finevqa": finevqa_reward,
     }
     reward_funcs = [REWARD_FUNCS_REGISTRY[func] for func in script_args.reward_funcs]
 
@@ -493,6 +638,29 @@ def main(script_args, training_args, model_args):
     trainer.clip_tokenizer = clip_tokenizer
     trainer.clip_model = clip_model
 
+    # 创建课程学习采样器
+    if training_args.local_rank != -1 or torch.cuda.device_count() > 1:
+        # 分布式训练，使用CurrDistributedSampler
+        curriculum_sampler = CurrDistributedSampler(
+            dataset=dataset,
+            strategy=script_args.curriculum_strategy,
+            total_steps=int(
+                training_args.num_train_epochs
+                * (len(dataset) // (training_args.per_device_train_batch_size * training_args.world_size))
+            ),
+            alpha=script_args.curriculum_alpha,
+            beta=script_args.curriculum_beta,
+            seed=training_args.seed,
+        )
+
+        # 将采样器添加到trainer中
+        trainer.curriculum_sampler = curriculum_sampler
+        logger.info(f"Created curriculum distributed sampler with strategy: {script_args.curriculum_strategy}")
+    else:
+        # 单机训练，暂时不使用课程学习采样器
+        trainer.curriculum_sampler = None
+        logger.info("Single device training, using default sampler")
+
     # trainer.aesthetic_model = aest_model
 
     ###############
@@ -506,7 +674,7 @@ def main(script_args, training_args, model_args):
         checkpoint = last_checkpoint
     train_result = trainer.train(resume_from_checkpoint=checkpoint)
     metrics = train_result.metrics
-    metrics["train_samples"] = len(dataset[script_args.dataset_train_split])
+    metrics["train_samples"] = len(dataset)
     trainer.log_metrics("train", metrics)
     trainer.save_metrics("train", metrics)
     trainer.save_state()
@@ -520,7 +688,7 @@ def main(script_args, training_args, model_args):
 
     # Save everything else on main process
     kwargs = {
-        "dataset_name": script_args.dataset_name,
+        "dataset_name": getattr(script_args, "dataset_name", "scene_dataset"),
         "tags": ["open-r1"],
     }
     if trainer.accelerator.is_main_process:

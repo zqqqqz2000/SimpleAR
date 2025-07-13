@@ -39,8 +39,7 @@ from typing import Any
 import numpy as np
 from cosmos_tokenizer.image_lib import ImageTokenizer
 from cosmos_tokenizer.networks import TokenizerConfigs
-from cosmos_tokenizer.utils import (get_filepaths, get_output_filepath,
-                                    read_image, resize_image, write_image)
+from cosmos_tokenizer.utils import get_filepaths, get_output_filepath, read_image, resize_image, write_image
 from loguru import logger as logging
 
 

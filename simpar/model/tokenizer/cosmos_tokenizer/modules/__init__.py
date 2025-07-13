@@ -14,14 +14,12 @@
 # limitations under the License.
 from enum import Enum
 
-from simpar.model.tokenizer.cosmos_tokenizer.modules.distributions import (
-    GaussianDistribution, IdentityDistribution)
-from simpar.model.tokenizer.cosmos_tokenizer.modules.layers2d import (Decoder,
-                                                                      Encoder)
-from simpar.model.tokenizer.cosmos_tokenizer.modules.layers3d import (
-    DecoderBase, DecoderFactorized, EncoderBase, EncoderFactorized)
-from simpar.model.tokenizer.cosmos_tokenizer.modules.quantizers import (
-    FSQuantizer, LFQuantizer, ResidualFSQuantizer, VectorQuantizer)
+from simpar.model.tokenizer.cosmos_tokenizer.modules.distributions import GaussianDistribution, IdentityDistribution
+from simpar.model.tokenizer.cosmos_tokenizer.modules.layers2d import Decoder, Encoder
+from simpar.model.tokenizer.cosmos_tokenizer.modules.layers3d import (DecoderBase, DecoderFactorized, EncoderBase,
+                                                                      EncoderFactorized)
+from simpar.model.tokenizer.cosmos_tokenizer.modules.quantizers import (FSQuantizer, LFQuantizer, ResidualFSQuantizer,
+                                                                        VectorQuantizer)
 
 
 class EncoderType(Enum):

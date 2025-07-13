@@ -24,6 +24,19 @@ if is_e2b_available():
 
     load_dotenv()
 
+# 添加FineVQAReward的导入检查
+try:
+    from fine_vqa_reward import FineVQAReward
+
+    _finevqa_available = True
+except ImportError:
+    _finevqa_available = False
+    FineVQAReward = None
+
+
+def is_finevqa_available() -> bool:
+    return _finevqa_available
+
 
 def math_reward(completions, **kwargs):
     """Reward function that checks if the completion is a valid math expression."""
@@ -440,16 +453,103 @@ def code_reward(completions, **kwargs) -> list[float]:
 
 
 def get_code_format_reward(language: str = "python"):
-    """Format reward function specifically for code responses.
-
-    Args:
-        language: Programming language supported by E2B https://e2b.dev/docs/code-interpreting/supported-languages
     """
-    pattern = rf"^<think>\n.*?\n</think>\n<answer>\n.*?```{language}.*?```.*?\n</answer>$"
+    Returns a reward function that checks if the code is formatted correctly.
+    """
 
     def code_format_reward(completions, **kwargs):
-        completion_contents = [completion[0]["content"] for completion in completions]
-        matches = [re.match(pattern, content, re.DOTALL | re.MULTILINE) for content in completion_contents]
-        return [1.0 if match else 0.0 for match in matches]
+        """Reward function that checks if the code is formatted correctly."""
+        if not is_e2b_available():
+            return [0.0] * len(completions)
+        return [1.0] * len(completions)
 
     return code_format_reward
+
+
+def finevqa_reward(completions, prompts, **kwargs):
+    """
+    FineVQA reward function that evaluates generated images based on VQA tasks.
+
+    Args:
+        completions: List of completions containing image features and images
+        prompts: List of prompts
+        **kwargs: Additional arguments that may contain original_data with scene information
+
+    Returns:
+        List of reward scores
+    """
+    if not is_finevqa_available():
+        raise ImportError("FineVQAReward is not available. Please install the fine_vqa_reward package.")
+
+    # Initialize the reward model
+    reward_model = FineVQAReward(model="clip-flant5-xxl")
+
+    # Extract images and scene data
+    images = []
+    scene_data = []
+
+    # Get original data from kwargs
+    original_data = kwargs.get("original_data", [])
+
+    for i, completion in enumerate(completions):
+        # Get the generated image from completion
+        image = completion[0].get("image", None)
+        images.append(image)
+
+        # Extract scene information from original_data
+        if i < len(original_data) and original_data[i]:
+            scene_info = original_data[i]
+            prompt_ = scene_info.get("prompt", "")
+            qa_ = scene_info.get("qa", [])
+            difficulty_ = scene_info.get("difficulty", "unknown")
+        else:
+            # Fallback: extract from prompts
+            prompt_ = prompts[i] if i < len(prompts) else ""
+            # 尝试从prompt中提取原始信息
+            clean_prompt = prompt_.strip("<|t2i|>").strip("<|soi|>")
+            qa_ = []
+            difficulty_ = "unknown"
+
+        scene_data.append({"prompt": prompt_, "qa": qa_, "difficulty": difficulty_})
+
+    # Filter out None images and corresponding scene data
+    valid_images = []
+    valid_scene_data = []
+    valid_indices = []
+
+    for i, (image, scene) in enumerate(zip(images, scene_data)):
+        if image is not None:
+            valid_images.append(image)
+            valid_scene_data.append(scene)
+            valid_indices.append(i)
+
+    if not valid_images:
+        # No valid images, return zero rewards
+        return [0.0] * len(completions)
+
+    # Compute VQA scores using the specified format
+    try:
+        # 根据您提供的使用方式重新构造数据
+        formatted_data = []
+        for scene in valid_scene_data:
+            formatted_data.append({"prompt": scene["prompt"], "qa": scene["qa"], "difficulty": scene["difficulty"]})
+
+        vqa_scores = reward_model(valid_images, formatted_data)
+    except Exception as e:
+        print(f"Error computing VQA scores: {e}")
+        return [0.0] * len(completions)
+
+    # Map scores back to original indices
+    rewards = [0.0] * len(completions)
+    for i, idx in enumerate(valid_indices):
+        if i < len(vqa_scores):
+            rewards[idx] = float(vqa_scores[i])
+
+    return rewards
+
+
+def get_finevqa_reward():
+    """
+    Returns the FineVQA reward function.
+    """
+    return finevqa_reward

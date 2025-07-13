@@ -20,12 +20,8 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from simpar.model.tokenizer.cosmos_tokenizer.utils import (load_decoder_model,
-                                                           load_encoder_model,
-                                                           load_model,
-                                                           numpy2tensor,
-                                                           pad_video_batch,
-                                                           tensor2numpy,
+from simpar.model.tokenizer.cosmos_tokenizer.utils import (load_decoder_model, load_encoder_model, load_model,
+                                                           numpy2tensor, pad_video_batch, tensor2numpy,
                                                            unpad_video_batch)
 
 

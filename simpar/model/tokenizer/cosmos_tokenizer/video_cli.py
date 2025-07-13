@@ -41,13 +41,9 @@ import numpy as np
 from loguru import logger as logging
 
 from simpar.model.tokenizer.cosmos_tokenizer.networks import TokenizerConfigs
-from simpar.model.tokenizer.cosmos_tokenizer.utils import (get_filepaths,
-                                                           get_output_filepath,
-                                                           read_video,
-                                                           resize_video,
+from simpar.model.tokenizer.cosmos_tokenizer.utils import (get_filepaths, get_output_filepath, read_video, resize_video,
                                                            write_video)
-from simpar.model.tokenizer.cosmos_tokenizer.video_lib import \
-    CausalVideoTokenizer
+from simpar.model.tokenizer.cosmos_tokenizer.video_lib import CausalVideoTokenizer
 
 
 def _parse_args() -> tuple[Namespace, dict[str, Any]]:

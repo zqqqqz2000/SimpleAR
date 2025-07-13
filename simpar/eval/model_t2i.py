@@ -15,8 +15,7 @@ from tqdm import tqdm
 from simpar.mm_utils import get_model_name_from_path
 from simpar.model.builder import load_pretrained_model
 from simpar.model.tokenizer.cosmos_tokenizer.networks import TokenizerConfigs
-from simpar.model.tokenizer.cosmos_tokenizer.video_lib import \
-    CausalVideoTokenizer as CosmosTokenizer
+from simpar.model.tokenizer.cosmos_tokenizer.video_lib import CausalVideoTokenizer as CosmosTokenizer
 from simpar.train.t2i_data import EvalT2IDataset
 from simpar.utils import disable_torch_init
 

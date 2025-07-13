@@ -40,11 +40,9 @@ from transformers import AutoConfig
 
 from simpar import conversation as conversation_lib
 from simpar.constants import DEFAULT_IMAGE_TOKEN, IGNORE_INDEX
-from simpar.mm_utils import (process_anyres_image, process_highres_image,
-                             process_highres_image_crop_split)
+from simpar.mm_utils import process_anyres_image, process_highres_image, process_highres_image_crop_split
 from simpar.model import *
-from simpar.model.language_model.modeling_qwen2 import (Qwen2Config,
-                                                        Qwen2ForCausalLM)
+from simpar.model.language_model.modeling_qwen2 import Qwen2Config, Qwen2ForCausalLM
 from simpar.train.llava_trainer import LLaVATrainer
 from simpar.train.preprocess import preprocess, preprocess_multimodal
 from simpar.train.t2i_data import T2IDataset
@@ -791,8 +789,7 @@ def get_model(model_args, training_args, bnb_model_from_pretrained_args):
                 low_cpu_mem_usage=False,
                 **customized_kwargs,
             )
-            from transformers.models.mixtral.modeling_mixtral import \
-                MixtralSparseMoeBlock
+            from transformers.models.mixtral.modeling_mixtral import MixtralSparseMoeBlock
 
             deepspeed.utils.set_z3_leaf_modules(model, [MixtralSparseMoeBlock])
         elif "mistral" in model_args.model_name_or_path.lower() or "zephyr" in model_args.model_name_or_path.lower():
@@ -830,8 +827,7 @@ def get_model(model_args, training_args, bnb_model_from_pretrained_args):
                     low_cpu_mem_usage=False,
                     **customized_kwargs,
                 )
-                from transformers.models.qwen2_moe.modeling_qwen2_moe import \
-                    Qwen2MoeSparseMoeBlock
+                from transformers.models.qwen2_moe.modeling_qwen2_moe import Qwen2MoeSparseMoeBlock
 
                 deepspeed.utils.set_z3_leaf_modules(model, [Qwen2MoeSparseMoeBlock])
             else:

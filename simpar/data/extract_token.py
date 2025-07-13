@@ -15,8 +15,7 @@ from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 
 from simpar.model.tokenizer.cosmos_tokenizer.networks import TokenizerConfigs
-from simpar.model.tokenizer.cosmos_tokenizer.video_lib import \
-    CausalVideoTokenizer as CosmosTokenizer
+from simpar.model.tokenizer.cosmos_tokenizer.video_lib import CausalVideoTokenizer as CosmosTokenizer
 from simpar.train.t2i_data import T2IDataset
 
 

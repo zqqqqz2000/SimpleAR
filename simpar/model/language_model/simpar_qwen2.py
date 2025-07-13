@@ -17,8 +17,7 @@ from typing import Optional, Union
 
 import torch
 import torch.nn.functional as F
-from transformers import (LogitsProcessorList, LogitsWarper,
-                          TemperatureLogitsWarper)
+from transformers import LogitsProcessorList, LogitsWarper, TemperatureLogitsWarper
 from transformers.generation.utils import GenerateOutput
 
 from .modeling_qwen2 import Qwen2ForCausalLM

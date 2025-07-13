@@ -13,8 +13,7 @@ import transformers
 import yaml
 from torch.utils.data import Dataset
 
-from simpar.train.preprocess import (preprocess_multimodal, preprocess_t2i,
-                                     preprocess_t2v)
+from simpar.train.preprocess import preprocess_multimodal, preprocess_t2i, preprocess_t2v
 from simpar.utils import rank0_print
 
 

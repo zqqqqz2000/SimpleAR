@@ -31,10 +31,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from loguru import logger as logging
 
-from simpar.model.tokenizer.cosmos_tokenizer.modules.patching import (
-    Patcher, UnPatcher)
-from simpar.model.tokenizer.cosmos_tokenizer.modules.utils import (
-    Normalize, nonlinearity)
+from simpar.model.tokenizer.cosmos_tokenizer.modules.patching import Patcher, UnPatcher
+from simpar.model.tokenizer.cosmos_tokenizer.modules.utils import Normalize, nonlinearity
 
 
 class Upsample(nn.Module):
