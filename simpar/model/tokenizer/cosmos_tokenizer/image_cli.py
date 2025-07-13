@@ -32,22 +32,16 @@ Usage:
 """
 
 import os
-from argparse import ArgumentParser, Namespace
 import sys
+from argparse import ArgumentParser, Namespace
 from typing import Any
 
 import numpy as np
-from loguru import logger as logging
-from cosmos_tokenizer.networks import TokenizerConfigs
-
 from cosmos_tokenizer.image_lib import ImageTokenizer
-from cosmos_tokenizer.utils import (
-    get_filepaths,
-    get_output_filepath,
-    read_image,
-    resize_image,
-    write_image,
-)
+from cosmos_tokenizer.networks import TokenizerConfigs
+from cosmos_tokenizer.utils import (get_filepaths, get_output_filepath,
+                                    read_image, resize_image, write_image)
+from loguru import logger as logging
 
 
 def _parse_args() -> tuple[Namespace, dict[str, Any]]:

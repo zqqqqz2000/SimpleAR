@@ -1,20 +1,17 @@
-import re
 import copy
 import random
-import tokenizers
-from packaging import version
-from typing import Dict, Sequence, List
+import re
+from typing import Dict, List, Sequence
 
+import tokenizers
 import torch
 import transformers
+from packaging import version
+
 from simpar import conversation as conversation_lib
-from simpar.constants import (
-    IGNORE_INDEX,
-    DEFAULT_IMAGE_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-    DEFAULT_IM_END_TOKEN,
-    IMAGE_TOKEN_INDEX,
-)
+from simpar.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
+                              DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
+                              IMAGE_TOKEN_INDEX)
 from simpar.mm_utils import tokenizer_image_token
 
 IS_TOKENIZER_GREATER_THAN_0_14 = version.parse(tokenizers.__version__) >= version.parse("0.14")

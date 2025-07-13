@@ -1,18 +1,20 @@
-import yaml
-import re
-import os
-import math
-import json
-import time
 import copy
+import json
+import math
+import os
 import random
-import numpy as np
+import re
+import time
 from typing import Dict
 
+import numpy as np
 import torch
-from torch.utils.data import Dataset
 import transformers
-from simpar.train.preprocess import preprocess_multimodal, preprocess_t2i, preprocess_t2v
+import yaml
+from torch.utils.data import Dataset
+
+from simpar.train.preprocess import (preprocess_multimodal, preprocess_t2i,
+                                     preprocess_t2v)
 from simpar.utils import rank0_print
 
 

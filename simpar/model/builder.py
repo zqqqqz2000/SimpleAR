@@ -16,8 +16,8 @@ import torch
 from transformers import AutoTokenizer, BitsAndBytesConfig
 
 from simpar.model import *
-from simpar.utils import rank0_print
 from simpar.model.language_model.simpar_qwen2 import SimpARForCausalLM
+from simpar.utils import rank0_print
 
 try:
     from vllm import LLM

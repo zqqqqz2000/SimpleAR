@@ -1,20 +1,20 @@
-import os
-import re
 import json
-import time
-import yaml
 import math
+import os
 import random
-from PIL import Image
+import re
+import time
 from typing import Dict
-import numpy as np
 
+import numpy as np
 import torch
+import transformers
+import yaml
+from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
 
-import transformers
 from simpar.train.preprocess import preprocess_t2i
 from simpar.utils import rank0_print
 

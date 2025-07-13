@@ -21,10 +21,7 @@ from loguru import logger as logging
 from torch import nn
 
 from simpar.model.tokenizer.cosmos_tokenizer.modules import (
-    ContinuousFormulation,
-    DecoderType,
-    EncoderType,
-)
+    ContinuousFormulation, DecoderType, EncoderType)
 
 NetworkEval = namedtuple("NetworkEval", ["reconstructions", "posteriors", "latent"])
 

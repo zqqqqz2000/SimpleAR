@@ -14,19 +14,13 @@
 # limitations under the License.
 """A library for image tokenizers inference."""
 
-import numpy as np
-import torch
 from typing import Any
 
-from cosmos_tokenizer.utils import (
-    load_model,
-    load_encoder_model,
-    load_decoder_model,
-    numpy2tensor,
-    pad_image_batch,
-    tensor2numpy,
-    unpad_image_batch,
-)
+import numpy as np
+import torch
+from cosmos_tokenizer.utils import (load_decoder_model, load_encoder_model,
+                                    load_model, numpy2tensor, pad_image_batch,
+                                    tensor2numpy, unpad_image_batch)
 
 
 class ImageTokenizer(torch.nn.Module):

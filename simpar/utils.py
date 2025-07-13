@@ -3,8 +3,8 @@ import logging
 import logging.handlers
 import os
 import sys
-import numpy as np
 
+import numpy as np
 import requests
 
 from simpar.constants import LOGDIR

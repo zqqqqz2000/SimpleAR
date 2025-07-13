@@ -1,6 +1,7 @@
 import os
-import torch
 import subprocess
+
+import torch
 
 
 def setup_for_distributed(is_master):

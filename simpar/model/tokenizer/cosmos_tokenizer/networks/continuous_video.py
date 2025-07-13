@@ -19,11 +19,9 @@ from loguru import logger as logging
 from torch import nn
 
 from simpar.model.tokenizer.cosmos_tokenizer.modules import (
-    ContinuousFormulation,
-    Decoder3DType,
-    Encoder3DType,
-)
-from simpar.model.tokenizer.cosmos_tokenizer.modules.layers3d import CausalConv3d
+    ContinuousFormulation, Decoder3DType, Encoder3DType)
+from simpar.model.tokenizer.cosmos_tokenizer.modules.layers3d import \
+    CausalConv3d
 
 NetworkEval = namedtuple("NetworkEval", ["reconstructions", "posteriors", "latent"])
 

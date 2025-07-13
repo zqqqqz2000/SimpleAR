@@ -4,6 +4,7 @@ import json
 import math
 import re
 from typing import Dict
+
 import torch
 from latex2sympy2_extended import NormalizationConfig
 from math_verify import LatexExtractionConfig, parse, verify

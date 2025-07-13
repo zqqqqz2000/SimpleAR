@@ -19,8 +19,11 @@ import torch
 from loguru import logger as logging
 from torch import nn
 
-from simpar.model.tokenizer.cosmos_tokenizer.modules import DecoderType, DiscreteQuantizer, EncoderType
-from simpar.model.tokenizer.cosmos_tokenizer.modules.quantizers import InvQuantizerJit
+from simpar.model.tokenizer.cosmos_tokenizer.modules import (DecoderType,
+                                                             DiscreteQuantizer,
+                                                             EncoderType)
+from simpar.model.tokenizer.cosmos_tokenizer.modules.quantizers import \
+    InvQuantizerJit
 
 NetworkEval = namedtuple("NetworkEval", ["reconstructions", "quant_loss", "quant_info"])
 

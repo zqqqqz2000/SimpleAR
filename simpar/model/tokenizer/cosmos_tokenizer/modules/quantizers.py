@@ -23,14 +23,12 @@ import torch.nn.functional as F
 from einops import reduce
 from loguru import logger as logging
 
-from simpar.model.tokenizer.cosmos_tokenizer.modules.utils import (
-    default,
-    entropy,
-    pack_one,
-    rearrange,
-    round_ste,
-    unpack_one,
-)
+from simpar.model.tokenizer.cosmos_tokenizer.modules.utils import (default,
+                                                                   entropy,
+                                                                   pack_one,
+                                                                   rearrange,
+                                                                   round_ste,
+                                                                   unpack_one)
 
 
 class ResidualFSQuantizer(nn.Module):

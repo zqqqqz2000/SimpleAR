@@ -2,21 +2,21 @@ import torch
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
-import torch.distributed as dist
-from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
-
 import os
-import numpy as np
-from tqdm import tqdm
 from dataclasses import dataclass, field
 from typing import Optional
 
+import numpy as np
+import torch.distributed as dist
 import transformers
-
 from ddp_distributed import init_distributed_mode
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
+from tqdm import tqdm
+
 from simpar.model.tokenizer.cosmos_tokenizer.networks import TokenizerConfigs
-from simpar.model.tokenizer.cosmos_tokenizer.video_lib import CausalVideoTokenizer as CosmosTokenizer
+from simpar.model.tokenizer.cosmos_tokenizer.video_lib import \
+    CausalVideoTokenizer as CosmosTokenizer
 from simpar.train.t2i_data import T2IDataset
 
 

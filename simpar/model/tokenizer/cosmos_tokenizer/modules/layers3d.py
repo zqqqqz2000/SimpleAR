@@ -31,22 +31,10 @@ import torch.nn.functional as F
 from loguru import logger as logging
 
 from simpar.model.tokenizer.cosmos_tokenizer.modules.patching import (
-    Patcher,
-    Patcher3D,
-    UnPatcher,
-    UnPatcher3D,
-)
+    Patcher, Patcher3D, UnPatcher, UnPatcher3D)
 from simpar.model.tokenizer.cosmos_tokenizer.modules.utils import (
-    CausalNormalize,
-    batch2space,
-    batch2time,
-    cast_tuple,
-    is_odd,
-    nonlinearity,
-    replication_pad,
-    space2batch,
-    time2batch,
-)
+    CausalNormalize, batch2space, batch2time, cast_tuple, is_odd, nonlinearity,
+    replication_pad, space2batch, time2batch)
 
 _LEGACY_NUM_GROUPS = 32
 

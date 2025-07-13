@@ -1,9 +1,10 @@
-import dataclasses
-from enum import auto, Enum
-from typing import List, Any, Dict, Union, Tuple
-import re
 import base64
+import dataclasses
+import re
+from enum import Enum, auto
 from io import BytesIO
+from typing import Any, Dict, List, Tuple, Union
+
 from PIL import Image
 from transformers import AutoTokenizer
 

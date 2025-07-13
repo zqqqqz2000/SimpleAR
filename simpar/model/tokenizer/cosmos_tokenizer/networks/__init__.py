@@ -15,27 +15,22 @@
 
 from enum import Enum
 
-from simpar.model.tokenizer.cosmos_tokenizer.networks.configs import (
-    continuous_image as continuous_image_dict,
-)
-from simpar.model.tokenizer.cosmos_tokenizer.networks.configs import (
-    discrete_image as discrete_image_dict,
-)
-from simpar.model.tokenizer.cosmos_tokenizer.networks.configs import (
-    continuous_video as continuous_video_dict,
-)
-from simpar.model.tokenizer.cosmos_tokenizer.networks.configs import (
-    discrete_video as discrete_video_dict,
-)
-
-from simpar.model.tokenizer.cosmos_tokenizer.networks.continuous_image import ContinuousImageTokenizer
-from simpar.model.tokenizer.cosmos_tokenizer.networks.discrete_image import DiscreteImageTokenizer
-from simpar.model.tokenizer.cosmos_tokenizer.networks.continuous_video import (
-    CausalContinuousVideoTokenizer,
-)
-from simpar.model.tokenizer.cosmos_tokenizer.networks.discrete_video import (
-    CausalDiscreteVideoTokenizer,
-)
+from simpar.model.tokenizer.cosmos_tokenizer.networks.configs import \
+    continuous_image as continuous_image_dict
+from simpar.model.tokenizer.cosmos_tokenizer.networks.configs import \
+    continuous_video as continuous_video_dict
+from simpar.model.tokenizer.cosmos_tokenizer.networks.configs import \
+    discrete_image as discrete_image_dict
+from simpar.model.tokenizer.cosmos_tokenizer.networks.configs import \
+    discrete_video as discrete_video_dict
+from simpar.model.tokenizer.cosmos_tokenizer.networks.continuous_image import \
+    ContinuousImageTokenizer
+from simpar.model.tokenizer.cosmos_tokenizer.networks.continuous_video import \
+    CausalContinuousVideoTokenizer
+from simpar.model.tokenizer.cosmos_tokenizer.networks.discrete_image import \
+    DiscreteImageTokenizer
+from simpar.model.tokenizer.cosmos_tokenizer.networks.discrete_video import \
+    CausalDiscreteVideoTokenizer
 
 
 class TokenizerConfigs(Enum):

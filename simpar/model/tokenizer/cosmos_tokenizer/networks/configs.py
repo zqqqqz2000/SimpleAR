@@ -15,13 +15,8 @@
 """The default image and video tokenizer configs."""
 
 from simpar.model.tokenizer.cosmos_tokenizer.modules import (
-    ContinuousFormulation,
-    DiscreteQuantizer,
-    EncoderType,
-    DecoderType,
-    Encoder3DType,
-    Decoder3DType,
-)
+    ContinuousFormulation, Decoder3DType, DecoderType, DiscreteQuantizer,
+    Encoder3DType, EncoderType)
 
 continuous_image = dict(
     # The attention resolution for res blocks.
