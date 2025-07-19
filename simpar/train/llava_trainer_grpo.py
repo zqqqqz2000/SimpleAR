@@ -24,36 +24,32 @@ import torch
 import torch.nn as nn
 import transformers
 import wandb
-from accelerate.utils import broadcast_object_list, gather, gather_object, set_seed
+from accelerate.utils import (broadcast_object_list, gather, gather_object,
+                              set_seed)
 from open_clip import OPENAI_DATASET_MEAN, OPENAI_DATASET_STD
 from PIL import Image
 from transformers import AutoTokenizer, set_seed
 from transformers.trainer_utils import get_last_checkpoint
-from trl import GRPOTrainer, ModelConfig, ScriptArguments, TrlParser, get_peft_config
+from trl import (GRPOTrainer, ModelConfig, ScriptArguments, TrlParser,
+                 get_peft_config)
 from trl.models import unwrap_model_for_generation
 from trl.trainer.utils import pad
 
 from hpsv2.src.open_clip import create_model_and_transforms, get_tokenizer
 from simpar.grpo.configs import GRPOConfig
-from simpar.grpo.rewards import (
-    accuracy_reward,
-    aesthetic_reward,
-    clip_reward,
-    code_reward,
-    finevqa_reward,
-    format_reward,
-    get_code_format_reward,
-    get_cosine_scaled_reward,
-    get_repetition_penalty_reward,
-    hps_reward,
-    len_reward,
-    reasoning_steps_reward,
-    tag_count_reward,
-)
+from simpar.grpo.rewards import (accuracy_reward, aesthetic_reward,
+                                 clip_reward, code_reward, finevqa_reward,
+                                 format_reward, get_code_format_reward,
+                                 get_cosine_scaled_reward,
+                                 get_repetition_penalty_reward, hps_reward,
+                                 len_reward, reasoning_steps_reward,
+                                 tag_count_reward)
 from simpar.grpo.utils.callbacks import get_callbacks
 from simpar.grpo.utils.wandb_logging import init_wandb_training
-from simpar.model.multimodal_encoder.cosmos_tokenizer.networks import TokenizerConfigs
-from simpar.model.multimodal_encoder.cosmos_tokenizer.video_lib import CausalVideoTokenizer as CosmosTokenizer
+from simpar.model.multimodal_encoder.cosmos_tokenizer.networks import \
+    TokenizerConfigs
+from simpar.model.multimodal_encoder.cosmos_tokenizer.video_lib import \
+    CausalVideoTokenizer as CosmosTokenizer
 from simpar.train.curr_sampler import CurrDistributedSampler
 from simpar.train.scene_dataset import SceneDataset
 
@@ -61,6 +57,13 @@ logger = logging.getLogger(__name__)
 
 
 class LLaVAGRPOTrainer(GRPOTrainer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.vq_model: Any = None
+        self.clip_preprocess: Any = None
+        self.clip_tokenizer: Any = None
+        self.clip_model: Any = None
+        self.curriculum_sampler: Any = None
 
     def get_train_dataloader(self):
         """
