@@ -156,6 +156,7 @@ class LLaVAGRPOTrainer(GRPOTrainer):
     def _generate_and_score_completions(
         self, inputs: dict[str, Union[torch.Tensor, Any]]
     ) -> dict[str, Union[torch.Tensor, Any]]:
+        print("starting to generate and score completions")
         device = self.accelerator.device
         # 数据已经在data collator中处理过了，直接提取prompt
         prompts = []
@@ -206,7 +207,9 @@ class LLaVAGRPOTrainer(GRPOTrainer):
                     for output in outputs.outputs:
                         completion_ids.append(output.token_ids)
 
+                print("starting decode images")
                 decoded_images = self._decode_images(completion_ids)  # List of images [C, H, W]
+                print("decode images done")
 
             else:
                 completion_ids = [None] * len(all_prompts_text)
@@ -323,12 +326,14 @@ class LLaVAGRPOTrainer(GRPOTrainer):
             original_data_list.append(original_data or {})
 
         rewards_per_func = torch.zeros(len(prompts), len(self.reward_funcs), device=device)
+        print("starting calc rewards")
         for i, (reward_func, reward_processing_class) in enumerate(
             zip(self.reward_funcs, self.reward_processing_classes)
         ):
             output_reward_func = reward_func(completions=completions, prompts=prompts, original_data=original_data_list)
             rewards_per_func[:, i] = torch.tensor(output_reward_func, dtype=torch.float32, device=device)
 
+        print("calc rewards done")
         # Gather the reward per function: this part is crucial, because the rewards are normalized per group and the
         # completions may be distributed across processes
         rewards_per_func = gather(rewards_per_func)
@@ -510,6 +515,7 @@ def main(script_args, training_args, model_args):
     ################
     # Load tokenizer
     ################
+    print("loading model")
     tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path, use_fast=False)
 
     # Load VQ model
@@ -593,6 +599,7 @@ def main(script_args, training_args, model_args):
         checkpoint = training_args.resume_from_checkpoint
     elif last_checkpoint is not None:
         checkpoint = last_checkpoint
+    print("before train")
     train_result = trainer.train(resume_from_checkpoint=checkpoint)
     metrics = train_result.metrics
     metrics["train_samples"] = len(dataset)
