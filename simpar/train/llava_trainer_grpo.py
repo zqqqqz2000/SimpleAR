@@ -107,21 +107,12 @@ class LLaVAGRPOTrainer(GRPOTrainer):
         for item in batch:
             if isinstance(item, dict):
                 # SceneDataset格式
-                scene_prompt = item.get("prompt", "")
-                qa_data = item.get("qa", [])
+                scene_prompt = item.get("prompt")
+                assert scene_prompt
 
-                # 从qa数据中提取问题作为prompt，或者直接使用scene_prompt
-                if qa_data and len(qa_data) > 0:
-                    # 使用第一个问题作为prompt
-                    question = qa_data[0].get("question", scene_prompt)
-                    formatted_prompt = f"<|t2i|>{question}<|soi|>"
-                else:
-                    # 如果没有qa数据，使用scene_prompt
-                    formatted_prompt = f"<|t2i|>{scene_prompt}<|soi|>"
-
+                formatted_prompt = f"<|t2i|>{scene_prompt}<|soi|>"
                 formatted_item = {
                     "prompt": formatted_prompt,
-                    "difficulty": item.get("difficulty", "unknown"),
                     "original_data": item,
                 }
                 formatted_batch.append(formatted_item)
