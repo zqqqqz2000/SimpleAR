@@ -16,10 +16,9 @@ import logging
 import os
 import sys
 from dataclasses import dataclass, field
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 import datasets
-import open_clip
 import torch
 import torch.nn as nn
 import transformers
@@ -27,19 +26,12 @@ import wandb
 from accelerate.utils import (broadcast_object_list, gather, gather_object,
                               set_seed)
 from open_clip import OPENAI_DATASET_MEAN, OPENAI_DATASET_STD
-from PIL import Image
 from transformers import AutoTokenizer, set_seed
 from transformers.trainer_utils import get_last_checkpoint
 
 from hpsv2.src.open_clip import create_model_and_transforms, get_tokenizer
 from simpar.grpo.configs import GRPOConfig
-from simpar.grpo.rewards import (accuracy_reward, aesthetic_reward,
-                                 clip_reward, code_reward, finevqa_reward,
-                                 format_reward, get_code_format_reward,
-                                 get_cosine_scaled_reward,
-                                 get_repetition_penalty_reward, hps_reward,
-                                 len_reward, reasoning_steps_reward,
-                                 tag_count_reward)
+from simpar.grpo.rewards import finevqa_reward
 from simpar.grpo.utils.callbacks import get_callbacks
 from simpar.grpo.utils.wandb_logging import init_wandb_training
 from simpar.model.tokenizer.cosmos_tokenizer.networks import TokenizerConfigs
@@ -61,7 +53,6 @@ class LLaVAGRPOTrainer(GRPOTrainer):
         self.vq_model: Any = None
         self.clip_preprocess: Any = None
         self.clip_tokenizer: Any = None
-        self.clip_model: Any = None
         self.curriculum_sampler: Any = None
 
     def get_train_dataloader(self):
@@ -169,15 +160,10 @@ class LLaVAGRPOTrainer(GRPOTrainer):
         transformed_images = generated_images / 255.0  # B, 3, 224, 224
         transformed_images = (transformed_images - mean[None, :, None, None]) / std[None, :, None, None]
 
-        with torch.inference_mode():
-            image_features = self.clip_model.encode_image(transformed_images)
-            image_features /= image_features.norm(dim=-1, keepdim=True)
-
         # convert to list for broadcast
         transformed_images = [img.cpu() for img in transformed_images]
-        image_features = [feat.cpu() for feat in image_features]
 
-        return transformed_images, image_features
+        return transformed_images
 
     def _generate_and_score_completions(
         self, inputs: dict[str, Union[torch.Tensor, Any]]
@@ -232,12 +218,11 @@ class LLaVAGRPOTrainer(GRPOTrainer):
                     for output in outputs.outputs:
                         completion_ids.append(output.token_ids)
 
-                decoded_images, decoded_image_embeds = self._decode_images(completion_ids)  # List of images [C, H, W]
+                decoded_images = self._decode_images(completion_ids)  # List of images [C, H, W]
 
             else:
                 completion_ids = [None] * len(all_prompts_text)
                 decoded_images = [None] * len(all_prompts_text)
-                decoded_image_embeds = [None] * len(all_prompts_text)
 
             # Broadcast the completions from the main process to all processes, ensuring each process receives its
             # corresponding slice.
@@ -249,9 +234,6 @@ class LLaVAGRPOTrainer(GRPOTrainer):
             completion_ids = completion_ids[process_slice]
             decoded_images = broadcast_object_list(decoded_images, from_process=0)
             decoded_images = decoded_images[process_slice]
-
-            decoded_image_embeds = broadcast_object_list(decoded_image_embeds, from_process=0)
-            decoded_image_embeds = decoded_image_embeds[process_slice]
 
             # Pad the completions, and concatenate them with the prompts
             completion_ids = [torch.tensor(ids, device=device) for ids in completion_ids]
@@ -271,7 +253,7 @@ class LLaVAGRPOTrainer(GRPOTrainer):
 
             # 对于非vLLM路径，也需要解码图像
             completion_ids_list = [ids.cpu().tolist() for ids in completion_ids]
-            decoded_images, decoded_image_embeds = self._decode_images(completion_ids_list)
+            decoded_images = self._decode_images(completion_ids_list)
 
         # Mask everything after the first EOS token
         is_eos = completion_ids == self.processing_class.eos_token_id
@@ -310,14 +292,8 @@ class LLaVAGRPOTrainer(GRPOTrainer):
         completions = []
         original_data_list = []
 
-        for i, (prompt, image_embed) in enumerate(zip(prompts, decoded_image_embeds)):
+        for i, prompt in enumerate(prompts):
             prompt_clean = prompt.strip("<|t2i|>").strip("<|soi|>")
-            with torch.inference_mode():
-                text = self.clip_tokenizer(prompt_clean.strip()).to(device)
-                text_feature = self.clip_model.encode_text(text)
-                text_feature /= text_feature.norm(dim=-1, keepdim=True)
-
-            image_feature = image_embed.unsqueeze(0).to(device)
 
             # 获取原始数据（如果有的话）
             original_data = None
@@ -350,8 +326,6 @@ class LLaVAGRPOTrainer(GRPOTrainer):
             completions.append(
                 [
                     {
-                        "image_feature": image_feature,
-                        "text_feature": text_feature,
                         "image": generated_image,  # 添加生成的图像
                     }
                 ]
@@ -364,13 +338,7 @@ class LLaVAGRPOTrainer(GRPOTrainer):
         for i, (reward_func, reward_processing_class) in enumerate(
             zip(self.reward_funcs, self.reward_processing_classes)
         ):
-            # 为finevqa_reward传递额外的参数
-            if reward_func.__name__ == "finevqa_reward":
-                output_reward_func = reward_func(
-                    completions=completions, prompts=prompts, original_data=original_data_list
-                )
-            else:
-                output_reward_func = reward_func(prompts=prompts, completions=completions)
+            output_reward_func = reward_func(completions=completions, prompts=prompts, original_data=original_data_list)
             rewards_per_func[:, i] = torch.tensor(output_reward_func, dtype=torch.float32, device=device)
 
         # Gather the reward per function: this part is crucial, because the rewards are normalized per group and the
@@ -568,57 +536,12 @@ def main(script_args, training_args, model_args):
     vq_model.eval()
     vq_model.requires_grad_(False)
 
-    # Load reward model
-    clip_model, _, clip_preprocess = create_model_and_transforms(
-        "ViT-H-14",
-        f"{script_args.clip_model_ckpt}/open_clip_pytorch_model.bin",
-        precision="amp",
-        device="cuda",
-        jit=False,
-        force_quick_gelu=False,
-        force_custom_text=False,
-        force_patch_dropout=False,
-        force_image_size=None,
-        pretrained_image=False,
-        image_mean=None,
-        image_std=None,
-        light_augmentation=True,
-        aug_cfg={},
-        output_dict=True,
-        with_score_predictor=False,
-        with_region_predictor=False,
-    )
-    clip_tokenizer = get_tokenizer("ViT-H-14")
-    clip_model = clip_model.to("cuda")
-    clip_model.eval()
-
     # Load the dataset - 使用新的SceneDataset
     dataset = SceneDataset(script_args.data_path)
     logger.info(f"Loaded {len(dataset)} samples from {script_args.data_path}")
 
     # Get reward functions
     REWARD_FUNCS_REGISTRY = {
-        "accuracy": accuracy_reward,
-        "format": format_reward,
-        "reasoning_steps": reasoning_steps_reward,
-        "cosine": get_cosine_scaled_reward(
-            min_value_wrong=script_args.cosine_min_value_wrong,
-            max_value_wrong=script_args.cosine_max_value_wrong,
-            min_value_correct=script_args.cosine_min_value_correct,
-            max_value_correct=script_args.cosine_max_value_correct,
-            max_len=script_args.cosine_max_len,
-        ),
-        "repetition_penalty": get_repetition_penalty_reward(
-            ngram_size=script_args.repetition_n_grams,
-            max_penalty=script_args.repetition_max_penalty,
-        ),
-        "length": len_reward,
-        "code": code_reward,
-        "code_format": get_code_format_reward(language=script_args.code_language),
-        "tag_count": tag_count_reward,
-        "clip": clip_reward,
-        "aesthetic": aesthetic_reward,
-        "hps": hps_reward,
         "finevqa": finevqa_reward,
     }
     reward_funcs = [REWARD_FUNCS_REGISTRY[func] for func in script_args.reward_funcs]
@@ -651,7 +574,6 @@ def main(script_args, training_args, model_args):
 
     trainer.clip_preprocess = clip_preprocess
     trainer.clip_tokenizer = clip_tokenizer
-    trainer.clip_model = clip_model
 
     # 创建课程学习采样器
     if training_args.local_rank != -1 or torch.cuda.device_count() > 1:
