@@ -114,7 +114,7 @@ class CurrDistributedSampler(DistributedSampler):
             normalized_pos = i / max(self.num_difficulties - 1, 1)
             # Higher weight for easier difficulties early in training
             prob = cosine_weight * (1.0 - normalized_pos) + (1.0 - cosine_weight) * normalized_pos
-            prob = max(prob, 0.05)  # Minimum probability to ensure some diversity
+            # prob = max(prob, 0.05)  # Minimum probability to ensure some diversity
             difficulty_probs.append(prob)
 
         return self._sample_by_difficulty_probs(difficulty_probs)
@@ -126,6 +126,7 @@ class CurrDistributedSampler(DistributedSampler):
 
         # Center of Gaussian moves from easy (0) to hard (num_difficulties-1)
         center = progress * (self.num_difficulties - 1) * self.beta
+        center = min(max(center, 0), self.num_difficulties - 1)
 
         # Calculate Gaussian probabilities for each difficulty
         difficulty_probs = []
