@@ -29,7 +29,6 @@ from open_clip import OPENAI_DATASET_MEAN, OPENAI_DATASET_STD
 from transformers import AutoTokenizer, set_seed
 from transformers.trainer_utils import get_last_checkpoint
 
-from hpsv2.src.open_clip import create_model_and_transforms, get_tokenizer
 from simpar.grpo.configs import GRPOConfig
 from simpar.grpo.rewards import finevqa_reward
 from simpar.grpo.utils.callbacks import get_callbacks
@@ -51,8 +50,6 @@ class LLaVAGRPOTrainer(GRPOTrainer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.vq_model: Any = None
-        self.clip_preprocess: Any = None
-        self.clip_tokenizer: Any = None
         self.curriculum_sampler: Any = None
 
     def get_train_dataloader(self):
@@ -478,7 +475,6 @@ class GRPOScriptArguments(ScriptArguments):
 
     vq_model_ckpt: str = field(default="/path_to_tokenizer/Cosmos-1.0-Tokenizer-DV8x16x16")
 
-    clip_model_ckpt: str = field(default="/path_to_clip/vit_large_patch14_clip_224.openai")
     aest_model_ckpt: str = field(default="/path_to_aesthetic/aesthetic-predictor/sa_0_4_vit_l_14_linear.pth")
 
 
@@ -571,9 +567,6 @@ def main(script_args, training_args, model_args):
         processing_class=tokenizer,
     )
     trainer.vq_model = vq_model
-
-    trainer.clip_preprocess = clip_preprocess
-    trainer.clip_tokenizer = clip_tokenizer
 
     # 创建课程学习采样器
     if training_args.local_rank != -1 or torch.cuda.device_count() > 1:
