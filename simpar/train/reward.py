@@ -3,6 +3,9 @@ from typing import Dict, List
 
 import t2v_metrics
 import torch
+from t2v_metrics.models.vqascore_models import clip_t5_model
+
+clip_t5_model.default_question_template = "{} Please answer yes or no."
 
 
 class FineVQAReward:
