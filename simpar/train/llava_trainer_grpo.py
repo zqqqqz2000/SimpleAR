@@ -82,6 +82,7 @@ class LLaVAGRPOTrainer(GRPOTrainer):
                 collate_fn=self._scene_data_collator,
                 num_workers=self.args.dataloader_num_workers,
                 pin_memory=self.args.dataloader_pin_memory,
+                drop_last=True,
             )
         else:
             # 使用默认的dataloader，但仍然使用自定义的data collator
@@ -107,6 +108,7 @@ class LLaVAGRPOTrainer(GRPOTrainer):
                 collate_fn=self._scene_data_collator,
                 num_workers=self.args.dataloader_num_workers,
                 pin_memory=self.args.dataloader_pin_memory,
+                drop_last=True,
             )
 
     def _scene_data_collator(self, batch):
