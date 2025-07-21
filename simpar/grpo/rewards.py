@@ -24,18 +24,7 @@ if is_e2b_available():
 
     load_dotenv()
 
-# 添加FineVQAReward的导入检查
-try:
-    from simpar.train.reward import FineVQAReward
-
-    _finevqa_available = True
-except ImportError:
-    _finevqa_available = False
-    FineVQAReward = None
-
-
-def is_finevqa_available() -> bool:
-    return _finevqa_available
+from simpar.train.reward import FineVQAReward
 
 
 def math_reward(completions, **kwargs):
@@ -478,8 +467,6 @@ def finevqa_reward(completions, prompts, **kwargs):
     Returns:
         List of reward scores
     """
-    if not is_finevqa_available():
-        raise ImportError("FineVQAReward is not available. Please install the t2v_metrics package.")
 
     # Initialize the reward model
     reward_model = FineVQAReward(model="clip-flant5-xxl")
