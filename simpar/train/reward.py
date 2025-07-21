@@ -26,7 +26,9 @@ class FineVQAReward:
         else:
             clip_t5_model.default_question_template = 'Does this figure show "{}"? Please answer yes or no.'
 
-        self.model = t2v_metrics.VQAScore(model=model, cache_dir="./reward_model/clip-flant5-xxl")
+        self.model = t2v_metrics.VQAScore(
+            model=model, cache_dir="/mnt/ali-sh-1/usr/wangshijian/DanceGRPO/reward_model/clip-flant5-xxl"
+        )
         self.device = device
         self.reward_model = self.model.to(self.device)
         self.reward_model.eval()
